@@ -8,7 +8,7 @@ The following code style will be used for all C code:
 Lines shall not exceed **_n_ characters**
 
 ## Indentation
-Blocks shall be indented using **{tabs, n spaces}**
+Blocks shall be indented using **tabs**
 
 Switch-case shall be indented as such:
 ```c
@@ -34,10 +34,10 @@ void main(void) {
 ```
 
 ## Case
-Functions shall use `fOocASe`, while shall should use `BArCAsE`. Constants should be `ANGRY_SNAKE`. Preprocessor commands shall use `lowercase`
+Functions and variables should both use `snake_case`. Constants should be `ANGRY_SNAKE`. Preprocessor commands shall use `lowercase`
 
 ## Operators
-There _{should, shouldn't}_ be spaces between operators.  
+There **should** be spaces between operators. (`x = y * 2;` not `x=y*2`).  
 Parentheses shall be used to fully disambiguate operators (order of operations should **not** be relied upon).
 
 # Markdown
@@ -54,4 +54,4 @@ Title
 
 ```
 
-No line limit - set your editor to wrap.
+No line limit - set your editor to wrap (`esc` followed by `Shift-4` in Nano)
