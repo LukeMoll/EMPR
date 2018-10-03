@@ -8,10 +8,22 @@
 #define DIR_IN 0
 #define DIR_OUT 1
 
+/**
+ * This value, when used in a busywait (see `void count_delay(uint32_t)` as an example) causes
+ * the cpu to wait for approximately one second. Multiplying this value has unexpected consequences
+ * This value seems to change from program to program ¯\_(ツ)_/¯
+ */ 
+#define ACTUAL_BS_ONE_SECOND 25000000
+
 void status_code(uint8_t code);
+void count_delay(uint32_t value);
 
 int main(void) {
-	status_code(5);
+	uint8_t i;
+	for(i=0; i<16; i++) {
+		status_code(i);
+		count_delay(ACTUAL_BS_ONE_SECOND);
+	}
 	return 0;
 }
 
@@ -28,5 +40,13 @@ void status_code(uint8_t code) {
 	GPIO_SetDir(LED_PORT, led_mask, DIR_OUT);
 	GPIO_ClearValue(LED_PORT, led_mask);
 	GPIO_SetValue(LED_PORT, lights);
+}
+
+void count_delay(uint32_t value) {
+    uint32_t i;
+	// return;
+    while(i < value) {
+        i++;
+    }
 }
 
