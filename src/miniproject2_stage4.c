@@ -39,8 +39,11 @@ void SysTick_Handler(void) {
         counter = 0; // reset counter
         if(i < 16) {
             status_code(i);
+
+            char binary_i[4];
+            sprintf(binary_i, "%d%d%d%d", (i&8)>>3, (i&4)>>2, (i&2)>>1, (i&1))
             char buf[12];
-            sprintf(buf, "%02d\t%01x\t0000\n\r", i, i);
+            sprintf(buf, "%02d\t%01x\t%s\n\r", i, i, binary_i);
             write_usb_serial_blocking(buf, 12);
             i++;
         }
