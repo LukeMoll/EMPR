@@ -19,7 +19,7 @@ int main(void) {
     GPIO_SetDir(LED_PORT, led_mask, DIR_OUT);
 
     serial_init(); //initialises to Baudrate 9600, 8 data bits (screen /dev/ttyACM0 9600,cs8)
-    write_usb_serial_blocking("Starting Count\n\r", 17);
+    write_usb_serial_blocking("Starting count\n\r", 17);
 
     SYSTICK_InternalInit(100);
     SYSTICK_IntCmd(ENABLE);
@@ -39,11 +39,8 @@ void SysTick_Handler(void) {
         counter = 0; // reset counter
         if(i < 16) {
             status_code(i);
-
-            char binary_i[4];
-            sprintf(binary_i, "%d%d%d%d", (i&8)>>3, (i&4)>>2, (i&2)>>1, (i&1))
             char buf[12];
-            sprintf(buf, "%02d\t%01x\t%s\n\r", i, i, binary_i);
+            sprintf(buf, "%02d\t%01x\t%d%d%d%d\n\r", i, i, (i&8)>>3, (i&4)>>2, (i&2)>>1, (i&1));
             write_usb_serial_blocking(buf, 12);
             i++;
         }
@@ -51,7 +48,7 @@ void SysTick_Handler(void) {
             status_code(0);
             SYSTICK_IntCmd(DISABLE);
             SYSTICK_Cmd(DISABLE);
-            write_usb_serial_blocking("finished count\n\r", 17);
+            write_usb_serial_blocking("Finished count\n\r", 17);
         }
         
     }
