@@ -2,7 +2,8 @@
 #include <lpc17xx_pinsel.h>
 #include "status.h"
 
-#define I2C_CLOCKRATE_HZ 100000
+#define I2C_CLOCKRATE_HZ 1000
+#define I2CDEV
 
 int main(void);
 
@@ -21,21 +22,29 @@ int main(void) {
 
 
     I2C_Init(LPC_I2C1, I2C_CLOCKRATE_HZ);
-    I2C_IntCmd(LPC_I2C1, ENABLE);
+    I2C_Cmd(LPC_I2C1, ENABLE); // Necessary for POLLING operation
+    // I2C_IntCmd(LPC_I2C1, ENABLE); // only use this for INTERRUPT operation
 
     I2C_M_SETUP_Type transferCfg;
-    transferCfg.sl_addr7bit = 0x20;
+    transferCfg.sl_addr7bit = 0x69;
 
-    transferCfg.tx_data = NULL;
-    transferCfg.tx_length = sizeof(transferCfg.tx_data);
+    // uint8_t data = 0;
+    // transferCfg.tx_data = &data;
+    uint8_t data[1] = {0};
+    transferCfg.tx_data = data;
+    transferCfg.tx_length = 1;
 
+    uint8_t recieve[1] = {0};
+    // transferCfg.rx_data = recieve;
     transferCfg.rx_data = NULL;
     transferCfg.rx_length = 0;
 
-    transferCfg.retransmissions_max = 2; // might be useful
+    transferCfg.retransmissions_max = 3; // might be useful
 
+    status_code(4);
+    Status s = I2C_MasterTransferData(LPC_I2C1, &transferCfg, I2C_TRANSFER_POLLING);
     status_code(1);
-    if (I2C_MasterTransferData(LPC_I2C1, &transferCfg, I2C_TRANSFER_POLLING) == ERROR){
+    if (s == ERROR){
         status_code(2);
     }
     else {
