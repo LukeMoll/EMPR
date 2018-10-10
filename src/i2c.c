@@ -1,6 +1,5 @@
 #include <lpc17xx_i2c.h>
-#include <lpc17xx_pinsel.h>
-
+#include "i2c.h"
 
 #ifndef I2C_CLOCKRATE_HZ
 #define I2C_CLOCKRATE_HZ 100000
@@ -28,11 +27,15 @@ void i2c_setup_polling() {
 }
 
 Status i2c_write_byte(uint8_t addr, uint8_t byte) {
+    return i2c_write_multiple_bytes(addr, &byte, 1);
+}
+
+Status i2c_write_multiple_bytes(uint8_t addr, uint8_t * bytes, uint8_t length) {
     I2C_M_SETUP_Type transferCfg;
     transferCfg.sl_addr7bit = addr;
 
-    transferCfg.tx_data = &byte;
-    transferCfg.tx_length = 1;
+    transferCfg.tx_data = bytes;
+    transferCfg.tx_length = length;
 
     transferCfg.rx_data = NULL; // disable recieving
     transferCfg.rx_length = 0;
