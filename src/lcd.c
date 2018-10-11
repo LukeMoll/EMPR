@@ -7,6 +7,7 @@ int main(void);
 void busy_wait(uint8_t duration);
 void lcd_init(); // TODO: remove and put in header file ready for modularisation
 void lcd_clear_screen();
+void write_to_screen(uint8_t * chars, uint8_t length, uint8_t base_address);
 
 #define LCD_I2C_ADDR 0x3b
 
@@ -31,7 +32,7 @@ int main(void) {
         0xA1    // !
     };
     
-    write_to_screen(* hello_world, 12, 0x80)
+    write_to_screen(hello_world, 12, 0x80);
 
     return 0;
 }
@@ -42,12 +43,12 @@ void lcd_init() {
         0x00, // control byte: instruction register, last control byte of this i2c transfer
         0x34, // 0x34 = function_set: 2x4 bits, 2lx16c, 1:9mplx mode, basic + standard instruction set
         0x0c, // 0x0c = display_ctl: display on, cursor off, blink off
-        0x06, // 0x06 = curs_disp_shift: move cursor, right shift.
+        0x06, // 0x06 = curs_disp_suint8_t * chars, uint8_t length, uint8_t base_addresshift: move cursor, right shift.
         0x35, // 0x35 = function_set: 2x4 bits, 2lx16c, 1:9mplx mode, basic + extended instruction set
         0x04, // here be ¯\_(ツ)_/¯s
         0x10, // ...
         0x42, // ...
-        0x9f, // ...
+        0x9f, // ...uint8_t * chars, uint8_t length, uint8_t base_address
         0x34, // ...
         0x02  // last byte of init sequence
         }, 11); 
@@ -86,16 +87,17 @@ void lcd_clear_screen() {
     // //TODO: Check if that specific command is actually necessary, or whether we can make our own clear screen of the type
 
     // busy_wait(1000); // can possibly be reduced, and ideally allow systick to be used for something else
-
-    for(i=0x80, i<0xa0, i++) {
+    uint8_t i;
+    for(i=0x80; i<0xa0; i++) {
     i2c_write_multiple_bytes(LCD_I2C_ADDR, (uint8_t[]){0x00,i}, 2);
     i2c_write_multiple_bytes(LCD_I2C_ADDR, (uint8_t[]){0x40,0xa0}, 2); //writes a blank space at i  
     }
     
 }
 
-void write_to_screen(uint8_t * chars, uint8_t length, uint8_t base_address {
+void write_to_screen(uint8_t * chars, uint8_t length, uint8_t base_address) {
 
+    uint8_t i;
     for(i=0; i < length; i++) {
         if(chars[i] == 0x91) {
             base_address = 90;
@@ -103,5 +105,5 @@ void write_to_screen(uint8_t * chars, uint8_t length, uint8_t base_address {
         }
         i2c_write_multiple_bytes(LCD_I2C_ADDR, (uint8_t[]){0x00,base_address + i}, 2); // sets cursor address to base address
         i2c_write_multiple_bytes(LCD_I2C_ADDR, (uint8_t[]){0x40,chars[i]}, 2);
-        
+    }   
 }
