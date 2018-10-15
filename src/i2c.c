@@ -44,3 +44,19 @@ Status i2c_write_multiple_bytes(uint8_t addr, uint8_t * bytes, uint8_t length) {
 
     return I2C_MasterTransferData(I2CDEV, &transferCfg, I2C_TRANSFER_POLLING);
 }
+
+Status i2c_read_byte(uint8_t addr, uint8_t * dest) {
+    // TODO: this hangs - why?
+    I2C_M_SETUP_Type transferCfg;
+    transferCfg.sl_addr7bit = addr;
+
+    transferCfg.tx_data = NULL;
+    transferCfg.tx_length = 0;
+
+    transferCfg.rx_data = dest; // rx_data is pointer to destination, as is dest
+    transferCfg.rx_length = 1; // recieve 1 byte
+
+    transferCfg.retransmissions_max = 3;
+
+    return I2C_MasterTransferData(I2CDEV, &transferCfg, I2C_TRANSFER_POLLING);
+}
