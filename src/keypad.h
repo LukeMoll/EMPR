@@ -3,5 +3,4 @@
 char * format_keypad_state(uint16_t state);
 uint16_t read_diff(uint8_t * pressedkey, uint16_t current_state);
 uint16_t keypad_read();
-char get_lcd_characters;
 #endif
