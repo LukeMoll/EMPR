@@ -1,5 +1,6 @@
 #include "i2c.h"
 #include "serial.h"
+#include "expander.h"
 
 #include <stdio.h>
 #include <status.h>
@@ -36,27 +37,27 @@ int main(void) {
     return 0;
 }    
 
-/************* functionality now in expander.h ***************/
+// /************* functionality now in expander.h ***************/
 
-uint8_t expander_read(uint8_t addr) {
-    uint8_t dest = 0;
-    i2c_read_byte(addr, &dest);
-    return dest; 
-}
+// uint8_t expander_read(uint8_t addr) {
+//     uint8_t dest = 0;
+//     i2c_read_byte(addr, &dest);
+//     return dest; 
+// }
 
-void expander_set(uint8_t addr, uint8_t bits) {
-    uint8_t state = expander_read(addr);
-    state |= bits; // Any HIGH bits in `bits` should be set high, otherwise keep it the same
-    i2c_write_byte(addr, state);
-}
+// void expander_set(uint8_t addr, uint8_t bits) {
+//     uint8_t state = expander_read(addr);
+//     state |= bits; // Any HIGH bits in `bits` should be set high, otherwise keep it the same
+//     i2c_write_byte(addr, state);
+// }
 
-void expander_clear(uint8_t addr, uint8_t bits) {
-    uint8_t state = expander_read(addr);
-    state &= (~bits); // Any HIGH bits in `bits` should be set low, otherwise ignore them
-    i2c_write_byte(addr, state);
-}
+// void expander_clear(uint8_t addr, uint8_t bits) {
+//     uint8_t state = expander_read(addr);
+//     state &= (~bits); // Any HIGH bits in `bits` should be set low, otherwise ignore them
+//     i2c_write_byte(addr, state);
+// }
 
-/*************************************************************/
+// /*************************************************************/
 
 uint16_t keypad_read() {
     expander_set(KEYPAD_I2C_ADDR, 0b0);
