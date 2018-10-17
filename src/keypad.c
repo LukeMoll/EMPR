@@ -66,3 +66,26 @@ char * format_keypad_state(uint16_t state) {
 }
 
 
+constant char keypad_keys[0xF]{
+    UPPER_D,
+    UPPER_C,
+    UPPER_B,
+    UPPER_A,
+    HASH,
+    NINE,
+    SIX,
+    THREE,
+    ZERO,
+    EIGHT,
+    FIVE,
+    TWO,
+    ASTERIX,
+    SEVEN, 
+    FOUR,
+    ONE
+};
+
+char get_lcd_characters(uint8_t key_pressed){
+    uint8_t index = key_pressed & 0x0F;
+    return keypad_keys[index];
+}
