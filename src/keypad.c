@@ -1,12 +1,14 @@
-#include "expander.h"
-#include <stdio.h>
+// #include "expander.h"
+// #include <stdio.h>
 
 #include "keypad.h"
+#include <stdint.h>
+#include "expander.h"
 
 uint16_t keypad_read() {
     expander_set(KEYPAD_I2C_ADDR, 0b0);
     uint8_t readPins = 0x0F;
-    int i;
+    uint8_t i;
     uint8_t buttons;
     uint16_t result = 0;
     expander_set(KEYPAD_I2C_ADDR, 0xFF); // bring everything high

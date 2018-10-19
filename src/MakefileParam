@@ -49,7 +49,7 @@ LDFLAGS+=-L$(CMSIS)/lib -lDriversLPC17xxgnu
 EXECNAME	= bin/$(NAME)
 
 # Source files provided by the user to build the project
-OBJ		= $(NAME).o status.o serial.o i2c.o expander.o lcd.o
+OBJ		= $(NAME).o status.o serial.o i2c.o expander.o lcd.o keypad.o keymap.o
 
 # Commands handled by this makefile
 all: 	target
