@@ -11,39 +11,39 @@
 int main(void) {
     i2c_setup_polling();
     serial_init();
-    char buf[10];
+    lcd_init();
+
     uint16_t state = keypad_read();
-    sprintf(buf, "[%05d]\r\n", state);
-    write_usb_serial_blocking(buf, 10);
-    char * fmtstr = format_keypad_state(state);
-    write_usb_serial_blocking(fmtstr, 37);
-    free(fmtstr);
     uint8_t pressed_key;
+
+    lcd_clear_screen();
+    uint8_t length = 1;
+    char * message_dyn = malloc(length); // error check this later
     if(read_diff(&pressed_key, state) != 0) {
-        char bif[12];
-        sprintf(bif, "key = %02d\r\n", pressed_key&0x0F);
-        write_usb_serial_blocking(bif, 12);
-        char bof[10];
-        char key_symbol = get_ascii_character(pressed_key);
-        sprintf(bof, "char = %c\r\n", key_symbol);
-        write_usb_serial_blocking(bof, 10);
+        strncpy(message_dyn, get_ascii_character(pressed_key), length);
 
-        lcd_clear_screen();
-        uint8_t length = 32;
-        char * message_dyn = malloc(length); // error check this later
-        strncpy(message_dyn, "yay", length);
+        char prebuf[100];
+        uint8_t prebuf_length = snprintf(prebuf, 99, "pre:     0x%0x\r\n", lcd_ascii_to_byte(get_ascii_character(pressed_key)));
+        write_usb_serial_blocking(prebuf, prebuf_length);
 
-        uint8_t * bytes = lcd_a2b_in_place(message_dyn, length);
-
-        lcd_write_bytes(message_dyn, length, 0x80);
-        free(message_dyn);
-        free(bytes);
     }
     else {
-        write_usb_serial_blocking("No key\r\n", 9);
+        strncpy(message_dyn, "-", length);
     }
+
+    uint8_t * nip_bytes = lcd_a2b(message_dyn, length);
+    uint8_t * bytes = lcd_a2b_in_place(message_dyn, length);
+    uint8_t single_byte = lcd_ascii_to_byte(message_dyn[0]);
+    uint8_t test_byte = 0x7f;
+    lcd_write_bytes(&test_byte, 1, 0x80);
+    lcd_clear_screen();
+    lcd_write_bytes(&single_byte, 1, 0x80);
+    char postbuf[100];
+    uint8_t postbuf_length = snprintf(postbuf, 99, "post:  ip 0x%0x\r\npost: nip 0x%0x\r\n\r\n", bytes[0], nip_bytes[0]);
+    write_usb_serial_blocking(postbuf, postbuf_length);
+
+    free(message_dyn);
+    free(bytes);
     return 0;
-
-
 }    
 
