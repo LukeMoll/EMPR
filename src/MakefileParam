@@ -68,6 +68,10 @@ clean:
 	rm -f *.elf *.wrn bin/*.bin log *.hex
 	rm -f $(EXECNAME)
 
+# make tidy - Clears out unneeded files from the mbed
+tidy:
+	rm -rf `find /media/$(USER)/MBED -type d -name ".Trash*"`
+
 # make install - Installs the resulting binary file to the MBED board, remember
 # to sync the file systems, so the copy finishes
 # need to know user to install into correct directory
