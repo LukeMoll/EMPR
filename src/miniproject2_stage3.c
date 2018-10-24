@@ -20,30 +20,29 @@ int main(void) {
     uint8_t length = 1;
     char * message_dyn = malloc(length); // error check this later
     if(read_diff(&pressed_key, state) != 0) {
-        strncpy(message_dyn, get_ascii_character(pressed_key), length);
+        
+
+        char char_pressed = get_ascii_character(pressed_key);
+        uint8_t byte_to_send = lcd_ascii_to_byte(char_pressed);
+        
+        lcd_write_byte(byte_to_send, 0x80);
+
+        //something isn't working in the following lines, can't tell what.
+
+        // strncpy(message_dyn, char_pressed, length);
+        // uint8_t * bytes = lcd_a2b_in_place(message_dyn, length);
+        // lcd_write_byte(message_dyn[0], 0x80);
 
         char prebuf[100];
-        uint8_t prebuf_length = snprintf(prebuf, 99, "pre:     0x%0x\r\n", lcd_ascii_to_byte(get_ascii_character(pressed_key)));
+        uint8_t prebuf_length = snprintf(prebuf, 99, "char = %c, byte = %02x\r\n", char_pressed, byte_to_send);
         write_usb_serial_blocking(prebuf, prebuf_length);
-
+        free(bytes);
     }
     else {
         strncpy(message_dyn, "-", length);
     }
-
-    uint8_t * nip_bytes = lcd_a2b(message_dyn, length);
-    uint8_t * bytes = lcd_a2b_in_place(message_dyn, length);
-    uint8_t single_byte = lcd_ascii_to_byte(message_dyn[0]);
-    uint8_t test_byte = 0x7f;
-    lcd_write_bytes(&test_byte, 1, 0x80);
-    lcd_clear_screen();
-    lcd_write_bytes(&single_byte, 1, 0x80);
-    char postbuf[100];
-    uint8_t postbuf_length = snprintf(postbuf, 99, "post:  ip 0x%0x\r\npost: nip 0x%0x\r\n\r\n", bytes[0], nip_bytes[0]);
-    write_usb_serial_blocking(postbuf, postbuf_length);
-
     free(message_dyn);
-    free(bytes);
+    
     return 0;
 }    
 
