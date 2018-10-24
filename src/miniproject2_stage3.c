@@ -4,6 +4,7 @@
 #include "keypad.h"
 #include "keymap.h"
 #include "lcd.h"
+#include "lcd_buf.h"
 
 #include <stdio.h>
 #include <status.h>
@@ -21,29 +22,29 @@ int main(void) {
     lcd_clear_screen();
     uint8_t length = 1;
 
-    char * message_dyn = malloc(length); // error check this later
+    char * message_dyn = malloc(length); 
     
     if(read_diff(&pressed_key, state) != 0) {
 
         //this works:
 
         char char_pressed = keymap_get_ascii_character(pressed_key);
-        uint8_t byte_to_send = lcd_ascii_to_byte(char_pressed);
        
+
+
         char buf[100];
         uint8_t buf_length = snprintf(buf, 99, "%c", char_pressed);
-        strncpy(message_dyn, buf, length);
+        
+        write_usb_serial_blocking(buf, buf_length);
 
-        uint8_t * bytes = lcd_a2b_in_place(message_dyn, length);
+        lcd_buf_write_string(buf, buf_length, 0);
+        lcd_buf_update();
 
-        lcd_write_bytes_neo(bytes, length, 0x80);
-        free(message_dyn);
-        free(bytes);
     }
     else {
-        // lcd_write_byte(lcd_ascii_to_byte(']'));
+        
     }
-    //free(message_dyn);
+    
     
     return 0;
 }    
