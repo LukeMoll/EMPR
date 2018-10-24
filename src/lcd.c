@@ -109,7 +109,7 @@ uint8_t * lcd_a2b_in_place(char * chars, uint8_t length) {
     return bytes;
 }
 
-uint8_t lcd_a2b(char * chars, uint8_t length) {
+uint8_t * lcd_a2b(char * chars, uint8_t length) {
     uint8_t * bytes = malloc(length);
 
     uint8_t i;
