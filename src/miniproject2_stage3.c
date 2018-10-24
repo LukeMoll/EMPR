@@ -5,32 +5,40 @@
 #include "keymap.h"
 #include "lcd.h"
 #include "lcd_buf.h"
+#include "lpc17xx_systick.h"
 
 #include <stdio.h>
 #include <status.h>
 
-void busy_wait();
+void SysTick_Handler(void);
+uint8_t pressed_key;
+uint16_t state;
 
 int main(void) {
+
     i2c_setup_polling();
     serial_init();
     lcd_init();
-
-    uint16_t state = keypad_read();
-    uint8_t pressed_key;
-
     lcd_clear_screen();
-    uint8_t length = 1;
-
-    char * message_dyn = malloc(length); 
     
+    SYSTICK_InternalInit(100);
+    SYSTICK_IntCmd(ENABLE);
+    SYSTICK_Cmd(ENABLE);
+    
+    
+    
+    
+    while(1){}
+
+    return 0;
+}    
+
+void SysTick_Handler(void){
+    state = keypad_read();
+     
     if(read_diff(&pressed_key, state) != 0) {
 
-        //this works:
-
         char char_pressed = keymap_get_ascii_character(pressed_key);
-       
-
 
         char buf[100];
         uint8_t buf_length = snprintf(buf, 99, "%c", char_pressed);
@@ -38,15 +46,12 @@ int main(void) {
         write_usb_serial_blocking(buf, buf_length);
 
         lcd_buf_write_string(buf, buf_length, 0);
-        lcd_buf_update();
 
     }
     else {
         
     }
-    
-    
-    return 0;
+
+    lcd_buf_update();
 }    
-
-
+    
