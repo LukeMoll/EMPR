@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <status.h>
 
+void busy_wait();
+
 int main(void) {
     i2c_setup_polling();
     serial_init();
@@ -18,31 +20,32 @@ int main(void) {
 
     lcd_clear_screen();
     uint8_t length = 1;
+
     char * message_dyn = malloc(length); // error check this later
+    
     if(read_diff(&pressed_key, state) != 0) {
-        
 
-        char char_pressed = get_ascii_character(pressed_key);
+        //this works:
+
+        char char_pressed = keymap_get_ascii_character(pressed_key);
         uint8_t byte_to_send = lcd_ascii_to_byte(char_pressed);
-        
-        lcd_write_byte(byte_to_send, 0x80);
+       
+        char buf[100];
+        uint8_t buf_length = snprintf(buf, 99, "%c", char_pressed);
+        strncpy(message_dyn, buf, length);
 
-        //something isn't working in the following lines, can't tell what.
+        uint8_t * bytes = lcd_a2b_in_place(message_dyn, length);
 
-        // strncpy(message_dyn, char_pressed, length);
-        // uint8_t * bytes = lcd_a2b_in_place(message_dyn, length);
-        // lcd_write_byte(message_dyn[0], 0x80);
-
-        char prebuf[100];
-        uint8_t prebuf_length = snprintf(prebuf, 99, "char = %c, byte = %02x\r\n", char_pressed, byte_to_send);
-        write_usb_serial_blocking(prebuf, prebuf_length);
+        lcd_write_bytes_neo(bytes, length, 0x80);
+        free(message_dyn);
         free(bytes);
     }
     else {
-        strncpy(message_dyn, "-", length);
+        // lcd_write_byte(lcd_ascii_to_byte(']'));
     }
-    free(message_dyn);
+    //free(message_dyn);
     
     return 0;
 }    
+
 

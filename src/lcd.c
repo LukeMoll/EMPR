@@ -41,7 +41,7 @@ void lcd_clear_screen() {
 void lcd_write_bytes(uint8_t * bytes, uint8_t length, uint8_t base_address) {
 
     uint8_t i;
-    for(i=0; i <= length; i++) {
+    for(i=0; i < length; i++) {
         if(bytes[i] == CHR_BLANK_NEWLINE) {
             base_address = 0xc0 - (i+2); //sets base address to first character on line 2 minus i
             continue;
@@ -50,6 +50,18 @@ void lcd_write_bytes(uint8_t * bytes, uint8_t length, uint8_t base_address) {
         i2c_write_multiple_bytes(LCD_I2C_ADDR, (uint8_t[]){0x00,base_address + i}, 2); // sets cursor address to base address
         i2c_write_multiple_bytes(LCD_I2C_ADDR, (uint8_t[]){0x40,bytes[i]}, 2);
     }   
+}
+
+void lcd_write_bytes_neo(uint8_t * bytes, uint8_t length, uint8_t base_address) {
+    uint8_t i, addr = base_address;
+    for(i=0; i < length; i++) {
+        if(addr == 0x90 || bytes[i] == CHR_BLANK_NEWLINE) {
+            addr = 0xc0;
+        }
+        i2c_write_multiple_bytes(LCD_I2C_ADDR, (uint8_t[]){0x00, addr}, 2);
+        i2c_write_multiple_bytes(LCD_I2C_ADDR, (uint8_t[]){0x40, bytes[i]}, 2);
+        addr++;
+    }
 }
 
 void lcd_write_byte(uint8_t byte, uint8_t base_address) {
