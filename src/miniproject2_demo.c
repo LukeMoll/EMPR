@@ -5,22 +5,25 @@
 #include "keymap.h"
 #include "lcd.h"
 #include "lcd_buf.h"
-#include "lpc17xx_systick.h"
+#include <lpc17xx_systick.h>
 
 #include <stdio.h>
-#include <status.h>
+#include <stdbool.h>
+#include <string.h>
+#include "status.h"
 
 void systick_stage1();
 void systick_stage2();
 void systick_stage3();
-void SysTick_Handler(void);
+void SysTick_Handler();
 
 uint8_t pressed_key;
-uint16_t state;
+uint16_t keypad_state;
 uint8_t stage;
 uint8_t millisecs;
 
-int main() {
+
+int main(void) {
 
     stage = 1;
     millisecs = 0;
@@ -41,40 +44,72 @@ int main() {
 
 void systick_stage1() {
     switch(millisecs) {
-        case 0: i2c_detect(); millisecs++;
-        case 20: millisecs = 0; stage++; 
-        default: millisecs++;
+        case 0: 
+            i2c_detect();
+            lcd_buf_write_string_multi("Detecting i2c\ndevices   ", 24, 0, true);
+            millisecs++;
+        break;
+        case 20: 
+            millisecs = 0;
+            stage++; 
+        break;
+        default:
+            ;
+            char elipses[3];
+            switch((millisecs >> 2) % 4) {
+                case 0:
+                    strncpy(elipses, "   ", 3);
+                break;
+                case 1:
+                    strncpy(elipses, ".  ", 3);
+                break;
+                case 2:
+                    strncpy(elipses, ".. ", 3);
+                break;
+                case 3:
+                    strncpy(elipses, "...", 3);
+                break;
+            }
+            lcd_buf_write_string(elipses, 3, 23);
+            millisecs++;
     }
 }
 
 void systick_stage2() {
     
-    //for some reason, only reaches cases 20 and default, unsure why.
-    status_code(millisecs);
+    // status_code(millisecs);
     switch(millisecs) {
         case 1:
-        lcd_clear_screen();
-        char hello_world[100];
-        uint8_t hello_world_length = snprintf(hello_world, 99, "hello, world!");
-        lcd_buf_write_string(hello_world, hello_world_length, 0);
-        
-        case 20:
-        lcd_clear_screen();
-        char henlo_world[100];
-        uint8_t henlo_world_length = snprintf(henlo_world, 99, "henlo \n world");
-        lcd_buf_write_string(henlo_world, henlo_world_length, 0);
+            ; // needed if the first line after a `case` statement is a declaration
+            char hello_world[12] = "hello, world";
+            lcd_buf_clear_screen();
+            lcd_buf_write_string(hello_world, 12, 0);
+            millisecs++;
+        break;
 
-        case 40: lcd_clear_screen(); millisecs = 0; stage++;
-        default: millisecs++;
+        case 20:
+            lcd_buf_write_string_multi("henlo\nworld", 12, 0, true);
+            millisecs++;
+        break;
+
+        case 40: 
+            lcd_clear_screen();
+            millisecs = 0;
+            stage++;
+            lcd_buf_write_string("Press any key", 13, 16);
+        break;
+
+        default:
+            millisecs++;
     }
 
 }
 
 void systick_stage3() {
     
-    state = keypad_read();
+    keypad_state = keypad_read();
     
-    if(read_diff(&pressed_key, state) != 0) {
+    if(read_diff(&pressed_key, keypad_state) != 0) {
 
             char char_pressed = keymap_get_ascii_character(pressed_key);
 
@@ -83,10 +118,10 @@ void systick_stage3() {
 
             lcd_buf_write_string(buf, buf_length, 0);
 
-        }
-        else {
-            
-        }
+    }
+    else {
+        
+    }
 
 }
 
@@ -95,9 +130,17 @@ void SysTick_Handler(void) {
 
     lcd_buf_update();
 
+    // char buf[100];
+    // write_usb_serial_blocking(buf, snprintf(buf, 99, "SysTick: t%04d\tstage %02d\r\n", millisecs, stage));
     switch (stage) {
-        case 1 : systick_stage1();
-        case 2 : systick_stage2();
-        case 3 : systick_stage3();
+        case 1:
+            systick_stage1();
+        break;
+        case 2:
+            systick_stage2();
+        break;
+        case 3:
+            systick_stage3();
+        break;
     }    
 } 

@@ -2,6 +2,9 @@
 #include "lcd_charmap.h"
 #include "lcd.h"
 #include <stdlib.h>
+#include <stdbool.h>
+
+#include "lcd_buf.h"
 
 static uint8_t lcd_memory_copy[32] = {
     0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0,
@@ -67,13 +70,57 @@ void lcd_buf_flush(void) {
 }
 
 /**
+ * Clears the buffer so the screen will be cleared on next _update or _flush
+ */
+void lcd_buf_clear_screen() {
+    uint8_t i;
+    for(i=0; i < 32; i++) {
+        lcd_buffer[i] = 0xa0;
+    }
+}
+
+/**
  * Converts and writes an ASCII string to the buffer
  *  string: ASCII string
  *  length: number of non-null characters in the string
- *  base_addr: zero-based index of the buffer (as lcd_buf_write_byte)
+ *  base_index: zero-based index of the buffer (as lcd_buf_write_byte)
  */
 void lcd_buf_write_string(char * string, uint8_t length, uint8_t base_index) {
     uint8_t * bytes = lcd_a2b(string, length);
     lcd_buf_write_bytes(bytes, length, base_index);
     free(bytes);
+}
+
+/**
+ * Same as lcd_buf_write_string but with newline address skipping (with optional character clearing)
+ *  string: ASCII string
+ *  length: number of non-null characters in the string
+ *  base_index: zero-based index of the buffer (as lcd_buf_write_byte)
+ *  clear_skipped: whether to set LCD between the newline character and the start of the nextline to blanks (true)
+ *                 or to ignore them and just skip the address (false)
+ */
+void lcd_buf_write_string_multi(char * string, uint8_t length, uint8_t base_index, bool clear_skipped) {
+    uint8_t * bytes = lcd_a2b(string, length);
+    
+    uint8_t i, index;
+    index = base_index; 
+    // i is the position in bytes
+    // index is the position on the LCD
+    for(i=0; i<length; i++) {
+        if(bytes[i] == CHR_BLANK_NEWLINE && index < 16){ // ignore newline characters if we're already on the second line (just prints space)
+            if(clear_skipped) {
+                for(; index < 16; index++) { // write blanks until index == 16
+                    lcd_buf_write_byte(CHR_BLANK_SPACE, index);
+                }
+            }
+            else {
+                index = 16;
+            }
+            // skip this byte and don't write it
+        }
+        else {
+            lcd_buf_write_byte(bytes[i], index++);
+        }
+    }
+    
 }
