@@ -34,6 +34,9 @@ int main(void) {
     // TIMCfg.PrescaleOption = TIM_PRESCALE_USVAL;
     // TIMCfg.PrescaleValue = 1000;
 
+    //Capture basically gives the value at the timer whenever a certain event happens. 
+    //Match generates an interrupt whenever the value in the timer matches the match value, optionally resets the timer
+
     // TIM_CAPTURECFG_Type CaptureCfg;
     // CaptureCfg.CaptureChannel = 0;
     // CaptureCfg.FallingEdge = ENABLE;
@@ -64,6 +67,10 @@ int main(void) {
 
 // }
 void RIT_IRQHandler(void) {
+
+    //calls interrupt fine, but then doesn't clear the interrupt flag, which is the issue.
+    //RIT_TimerClearCommand should clear that flag (best guess) but appears to not exist?? for some reason??
+    //so basically RIT_Interrupt_Handler gets called constantly after the first 1000 milliseconds
     RIT_TimerClearCmd(LPC_RIT, 1);
 
     if(counter==60069){
