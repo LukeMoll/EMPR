@@ -3,6 +3,7 @@
 #include <lpc17xx_systick.h>
 #include <lpc17xx_gpio.h>
 #include <lpc17xx_timer.h>
+#include "dac.h"
 
 #include <math.h>
 #include "status.h"
@@ -12,11 +13,11 @@
 
 #define DAC_PORT 0
 #define DAC_PIN 26
+#define DAC_FUNCNUM 2
 
 #define SQR_PORT 0
 #define SQR_PIN 16
 
-void init(void);
 uint16_t sine_wave(uint8_t x, uint8_t amplitudeDenom);
 double lookup_sin(double piCoeff);
 uint16_t transform10(double normalised);
@@ -28,7 +29,7 @@ uint16_t transform10(double normalised);
  */
 
 int main(void) {
-    init();
+    dac_init(DAC_PORT, DAC_PIN, DAC_FUNCNUM);
 
     DAC_UpdateValue(LPC_DAC, 0xFFC);
 
@@ -38,21 +39,11 @@ int main(void) {
     SYSTICK_IntCmd(ENABLE);
     SYSTICK_Cmd(ENABLE);
 
+    while(1){};
+
     return 0;
 }
 
-void init(void) {
-    PINSEL_CFG_Type PinCfg;
-    PinCfg.Funcnum = 2;
-    PinCfg.OpenDrain = PINSEL_PINMODE_NORMAL; // need to check these
-    PinCfg.Pinmode = PINSEL_PINMODE_TRISTATE; // seems to work fine tho
-    PinCfg.Portnum = DAC_PORT;
-    PinCfg.Pinnum =  DAC_PIN;
-
-    PINSEL_ConfigPin(&PinCfg);
-    DAC_Init(LPC_DAC);
-
-}
 
 
 uint8_t tick = 0;
