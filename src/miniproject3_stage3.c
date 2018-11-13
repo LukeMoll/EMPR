@@ -20,7 +20,7 @@ int main(void) {
     dac_init(DAC_PORT, DAC_PIN, DAC_FUNCNUM);
     DAC_UpdateValue(LPC_DAC, 0xFFC);
 
-    SYSTICK_InternalInit(100);
+    SYSTICK_InternalInit(1);
     SYSTICK_IntCmd(ENABLE);
     SYSTICK_Cmd(ENABLE);
 
