@@ -5,7 +5,7 @@
 #include <lpc17xx_timer.h>
 #include "dac.h"
 
-#include <math.h>
+#include "generatedfuncs.h"
 #include "status.h"
 
 #define DIR_IN 0
@@ -88,30 +88,23 @@ void SysTick_Handler(void) {
  *  returns: [0,1023]
  */
 uint16_t sine_wave(uint8_t tick, uint8_t amplitudeDenom) {
-
-    return transform10(
-        lookup_sin( 
-            ((double)tick) /
-            128.0f
-        ) 
-        /
-        ((double) amplitudeDenom)
-    );
+    return (GENERATED_SIN_UINT16[tick]>>6)/amplitudeDenom + (amplitudeDenom-1)*256;
+    // this doesn't scale with amplitude properly; TODO just use floating point
 }
 
 /**
  * Takes radian value (DIVIDED BY PI) and returns sine of value (in interval [-1.0, 1.0])
  */
-double lookup_sin(double piCoeff) {
-    return sin(piCoeff * M_PI);
-}
+// double lookup_sin(double piCoeff) {
+//     return sin(piCoeff * M_PI);
+// }
 
 /**
  * Takes normalised value (in interval [-1.0, 1.0]) and transforms for use with 10-bit ADC.
  */
-uint16_t transform10(double normalised) {
-    return (uint16_t) (
-        ( normalised + 1.0) // [-1,1]; -> [0,2]
-        * 511.5 // * 512 would cause 2*512 = 1024, which is out of range for 10 bits
-    ); // [0, 1023]
-}
+// uint16_t transform10(double normalised) {
+//     return (uint16_t) (
+//         ( normalised + 1.0) // [-1,1]; -> [0,2]
+//         * 511.5 // * 512 would cause 2*512 = 1024, which is out of range for 10 bits
+//     ); // [0, 1023]
+// }
