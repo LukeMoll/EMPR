@@ -8,12 +8,30 @@
 #define PWM_PORT 2
 #define PWM_PIN 1
 #define PWM_CHANNEL 2
-#define PWM_ENDVAL 500
+#define PWM_ENDVAL 5000
+#define PWM_STARTVAL 10000
+#define PWM_PRESCALE 1
+
+void PWM_setup_single_edge(void);
+void PWM_start(void);
 
 int main(void) {
     /**
-     * it don't work
+     * it work
      */
+    PWM_setup_single_edge();
+    PWM_start();
+}
+
+void PWM_setup_single_edge(void) {
+
+PWM_TIMERCFG_Type timerconfig;
+    timerconfig.PrescaleOption = PWM_TIMER_PRESCALE_TICKVAL;
+    timerconfig.PrescaleValue = 1;
+    PWM_Init(LPC_PWM1, PWM_MODE_TIMER, &timerconfig);
+    
+    //configure the pins
+    
     PINSEL_CFG_Type PinCfg;
     PinCfg.Funcnum = 1;
     PinCfg.OpenDrain = 0;
@@ -22,66 +40,36 @@ int main(void) {
     PinCfg.Pinnum =  PWM_PIN;
     PINSEL_ConfigPin(&PinCfg);
 
-    PWM_TIMERCFG_Type timerconfig;
-    // timerconfig.PrescaleOption = PWM_TIMER_PRESCALE_TICKVAL;
-    // timerconfig.PrescaleValue = 1;
-    timerconfig.PrescaleOption = PWM_TIMER_PRESCALE_USVAL;
-    timerconfig.PrescaleValue = 1000; // 1ms
-    PWM_Init(LPC_PWM1, PWM_MODE_TIMER, &timerconfig);
+    // configure Match 0 and Match 1
 
     PWM_MATCHCFG_Type matchconfig;
-    /*
-    matchconfig.IntOnMatch = DISABLE;
-    matchconfig.MatchChannel = 0;
-    matchconfig.ResetOnMatch = ENABLE;
-    matchconfig.StopOnMatch = DISABLE;
-    PWM_MatchUpdate(LPC_PWM1, PWM_CHANNEL, 0, PWM_MATCH_UPDATE_NOW);
-    PWM_ConfigMatch(LPC_PWM1, &matchconfig); */
+    PWM_MATCHCFG_Type matchconfig0;
 
+    matchconfig0.IntOnMatch = DISABLE;
+    matchconfig0.MatchChannel = 0;
+    matchconfig0.ResetOnMatch = ENABLE;
+    matchconfig0.StopOnMatch = DISABLE;
+    PWM_MatchUpdate(LPC_PWM1, 0, PWM_STARTVAL, PWM_MATCH_UPDATE_NOW);
+    PWM_ConfigMatch(LPC_PWM1, &matchconfig0); 
+
+    PWM_ChannelConfig(LPC_PWM1, PWM_CHANNEL, PWM_CHANNEL_SINGLE_EDGE); 
+    
     matchconfig.IntOnMatch = DISABLE;
-    matchconfig.MatchChannel = 2;
-    matchconfig.ResetOnMatch = ENABLE;
+    matchconfig.MatchChannel = PWM_CHANNEL;
+    matchconfig.ResetOnMatch = DISABLE;
     matchconfig.StopOnMatch = DISABLE;
-    PWM_MatchUpdate(LPC_PWM1, 2, PWM_ENDVAL, PWM_MATCH_UPDATE_NOW);
+    PWM_MatchUpdate(LPC_PWM1, PWM_CHANNEL, PWM_ENDVAL, PWM_MATCH_UPDATE_NOW);
     PWM_ConfigMatch(LPC_PWM1, &matchconfig);
 
-    PWM_ChannelConfig(LPC_PWM1, PWM_CHANNEL, PWM_CHANNEL_SINGLE_EDGE);
-
     PWM_ChannelCmd(LPC_PWM1, PWM_CHANNEL, ENABLE);
+    
+    //start everything
 
-    PWM_ResetCounter(LPC_PWM1);         // magic voodoo
-    PWM_CounterCmd(LPC_PWM1, ENABLE);   // but might make it work
-
-    PWM_Cmd(LPC_PWM1, ENABLE);
-
-    SYSTICK_InternalInit(100);
-    SYSTICK_IntCmd(ENABLE);
-    SYSTICK_Cmd(ENABLE);
-
-    while(1) {};
-
-    return 0;
 }
 
-uint8_t tick = 0;
-uint8_t systickcounter = 0;
-void SysTick_Handler(void) {
-    
-    SYSTICK_ClearCounterFlag();
-    // int start = PWM_ENDVAL;
-    // int channel = 1;
-    // PWM_MATCHCFG_Type PWMMatchCfgDat;
-    // PWM_MatchUpdate(LPC_PWM1, 1, start, PWM_MATCH_UPDATE_NOW);
-    // PWMMatchCfgDat.IntOnMatch = DISABLE;
-    // PWMMatchCfgDat.MatchChannel = ((channel-1)*2 + 1);
-    // PWMMatchCfgDat.ResetOnMatch = DISABLE;
-    // PWMMatchCfgDat.StopOnMatch = DISABLE;
-    // PWM_ConfigMatch(LPC_PWM1, &PWMMatchCfgDat);
+void PWM_start(void) {
+    PWM_ResetCounter(LPC_PWM1);        
+    PWM_CounterCmd(LPC_PWM1, ENABLE);   
 
-    if((++systickcounter)%10 == 0) {
-        status_code(tick = tick?0:1);
-        PWM_ResetCounter(LPC_PWM1);         // magic voodoo
-        PWM_CounterCmd(LPC_PWM1, ENABLE); 
-    }
-
+    PWM_Cmd(LPC_PWM1, ENABLE);
 }
