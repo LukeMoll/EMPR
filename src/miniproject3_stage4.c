@@ -13,6 +13,8 @@ int main(void) {
     /**
      * it work
      */
+    PWM_setup_timer(PWM_CHANNEL, PWM_STARTVAL);
+    PWM_setup_period(PWM_STARTVAL);
     PWM_setup_single_edge(PWM_CHANNEL, PWM_STARTVAL, PWM_ENDVAL, PWM_PRESCALE);
     PWM_start();
 }
