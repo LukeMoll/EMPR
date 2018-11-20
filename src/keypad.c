@@ -3,6 +3,8 @@
 
 #include "keypad.h"
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "expander.h"
 
 uint16_t keypad_read() {
@@ -23,7 +25,12 @@ uint16_t keypad_read() {
 
 static uint16_t previous_keypad_state = 0xFFFF;
 
-uint16_t read_diff(uint8_t * pressedkey, uint16_t current_state) {
+/**
+ * (Not 100% on these docs)
+ * Should return nonzero if a key has been pressed (on keydown),
+ * otherwise should return zero.
+ */
+uint16_t keypad_read_diff(uint8_t * pressedkey, uint16_t current_state) {
     uint16_t ret;
     uint16_t delta;
     delta = ((~current_state) & previous_keypad_state);

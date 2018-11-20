@@ -1,6 +1,7 @@
 #include "lcd_charmap.h"
 #include "i2c.h"
 #include "lcd.h"
+#include <stdlib.h>
 
 void lcd_init() {
     // init sequence: one control byte and ten instructions (as in lecture slides, see PCF2119x datasheet Table 12)
@@ -69,7 +70,6 @@ void lcd_write_byte(uint8_t byte, uint8_t base_address) {
     i2c_write_multiple_bytes(LCD_I2C_ADDR, (uint8_t[]){0x40,byte}, 2);
 }
 
-#include "status.h"
 
 uint8_t lcd_ascii_to_byte(char ascii) {
     if( (0x41 <= ascii && ascii <= 0x5A) || // uppercase latin

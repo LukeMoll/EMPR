@@ -36,7 +36,7 @@ int main(void) {
 void SysTick_Handler(void){
     state = keypad_read();
      
-    if(read_diff(&pressed_key, state) != 0) {
+    if(keypad_read_diff(&pressed_key, state) != 0) {
 
         char char_pressed = keymap_get_ascii_character(pressed_key);
 

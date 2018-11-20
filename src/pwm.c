@@ -57,7 +57,7 @@ void PWM_setup_single_edge(uint8_t channel, uint32_t length) {
 
 }
 
-PWM_setup_dual_edge(uint8_t channel, uint32_t startval, uint32_t endval) {
+void PWM_setup_dual_edge(uint8_t channel, uint32_t startval, uint32_t endval) {
     
     if(channel>6) {
         //checks if you're on a valid channel
