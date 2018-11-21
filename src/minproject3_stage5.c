@@ -13,6 +13,7 @@
 #define VOLTAGE_MEASUREMENT 2
 
 void Systick_Handler(void);
+uint16_t voltage_to_cm(uint16_t voltage);
 
 uint8_t measurement_type
 
@@ -42,7 +43,15 @@ void SysTick_Handler(void) {
 
         case DISTANCE_MEASUREMENT: 
             //read the adc voltage
-            //convert the voltage measured to cm with a function
+            uint16_t data_plain = adc_read(MP3_ADC_CHANNEL);
+            float voltage = to_voltage(data_plain);
+            
+            uint16_t cms = voltage_to_cm(voltage);
+            uint8_t lcd_len = snprintf(lcd_buf, 16, "%06.4f",cms);
+
+            lcd_buf_write_string(lcd_buf, lcd_len, 0);
+            lcd_buf_update();
+
             break;
         case VOLTAGE_MEASUREMENT:
             uint16_t data_plain = adc_read(MP3_ADC_CHANNEL);
@@ -57,7 +66,15 @@ void SysTick_Handler(void) {
         default:
             uint8_t pressedKey;
             keypad_state = keypad_read_diff(&pressedKey, keypad_read());
+            //measurement_type = whatever the read is 
+            break;
 
     }
     
 }
+
+uint16_t voltage_to_cm(uint16_t voltage) {
+    //figure out the function, convert it to cm
+    //maybe just use a lookup table
+}
+
