@@ -12,6 +12,7 @@
 #include "lcd.h"
 #include "lcd_buf.h"
 #include "i2c.h"
+#include "generatedfuncs.h"
 
 #define PWM_CHANNEL 3
 #define PWM_ENDVAL 0
@@ -34,6 +35,7 @@ void Stage2();
 void Stage3();
 void Stage4_setup();
 void Stage4();
+uint16_t sine_wave(uint8_t tick, uint8_t amplitudeDenom);
 
 
 int main(void) {    
@@ -74,7 +76,7 @@ void SysTick_Handler(void) {
         case 1:
             status_code(1); 
             lcd_buf_clear_screen();
-            lcd_buf_write_string("Stage 2: , xxxXs", 16, 0); // TODO put osc timebase in
+            lcd_buf_write_string("Stage 2: , 100ms", 16, 0);
             lcd_buf_write_string("DAC sine wave", 13, 16);
             Stage2();
             break;
@@ -121,8 +123,20 @@ void SysTick_Handler(void) {
     lcd_buf_update();
 }
 
+uint16_t s2_tick = 0;
+uint8_t s2_amp, s2_freq;
 void Stage2() {
-    // todo: luke gets off his a**
+    if(s2_tick % 1000 == 0) {
+        // change amp and freq at 1000 tick intervals
+        // while SysTick is being called every 1ms, this should it changes every second
+        // in reality it is much slower
+        // probably because the handler code takes more than 1ms to execute
+        // a freerunning timer would yield more accurate results
+        s2_tick = 1;
+        s2_amp =  s2_amp  % 4 + 1;
+        s2_freq = s2_freq % 4 + 1;
+    }
+    DAC_UpdateValue(LPC_DAC, sine_wave( (s2_tick++)*s2_freq % 256, s2_amp));
 }
 
 void Stage3() {
@@ -152,4 +166,13 @@ void Stage4() {
     }
 
     PWM_setup_single_edge(PWM_CHANNEL, pwm_length);
+}
+
+/**
+ * Generates a sine wave from a 8-bit tick
+ *  tick: [0,255]
+ *  returns: [0,1023]
+ */
+uint16_t sine_wave(uint8_t tick, uint8_t amplitudeDenom) {
+    return GENERATED_SIN_INT16[tick]/(amplitudeDenom*64) + 512;
 }

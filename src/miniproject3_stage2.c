@@ -63,18 +63,18 @@ void SysTick_Handler(void) {
 
     if(tick == 0) {
         cycles++; // cycles is every 256 ticks - 1 second ~= 4 cycles
-        if(cycles % 8 == 0) { // every 2 seconds, change the amplitude
-            amp_scale_denom = amp_scale_denom < max_amp_scale_denom ? 
-                amp_scale_denom + 1 :
-                1;
-        }
-        if(cycles >= 40) { // every 10 seconds, increase the frequency
-            cycles = 0;
-            freq_scale_factor = freq_scale_factor < max_freq_scale_factor ?
-                freq_scale_factor * 2 :
-                1;
-            amp_scale_denom = 1;
-        }
+        // if(cycles % 8 == 0) { // every 2 seconds, change the amplitude
+        //     amp_scale_denom = amp_scale_denom < max_amp_scale_denom ? 
+        //         amp_scale_denom + 1 :
+        //         1;
+        // }
+        // if(cycles >= 40) { // every 10 seconds, increase the frequency
+        //     cycles = 0;
+        //     freq_scale_factor = freq_scale_factor < max_freq_scale_factor ?
+        //         freq_scale_factor * 2 :
+        //         1;
+        //     amp_scale_denom = 1;
+        // }
     }
 
     tick++; // We like the overflow >:)))
@@ -88,23 +88,5 @@ void SysTick_Handler(void) {
  *  returns: [0,1023]
  */
 uint16_t sine_wave(uint8_t tick, uint8_t amplitudeDenom) {
-    return (GENERATED_SIN_UINT16[tick]>>6)/amplitudeDenom + (amplitudeDenom-1)*256;
-    // this doesn't scale with amplitude properly; TODO just use floating point
+    return GENERATED_SIN_INT16[tick]/(amplitudeDenom*64) + 512;
 }
-
-/**
- * Takes radian value (DIVIDED BY PI) and returns sine of value (in interval [-1.0, 1.0])
- */
-// double lookup_sin(double piCoeff) {
-//     return sin(piCoeff * M_PI);
-// }
-
-/**
- * Takes normalised value (in interval [-1.0, 1.0]) and transforms for use with 10-bit ADC.
- */
-// uint16_t transform10(double normalised) {
-//     return (uint16_t) (
-//         ( normalised + 1.0) // [-1,1]; -> [0,2]
-//         * 511.5 // * 512 would cause 2*512 = 1024, which is out of range for 10 bits
-//     ); // [0, 1023]
-// }
