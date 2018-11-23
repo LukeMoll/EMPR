@@ -100,7 +100,7 @@ void lcd_buf_write_string(char * string, uint8_t length, uint8_t base_index) {
  *                 or to ignore them and just skip the address (false)
  */
 void lcd_buf_write_string_multi(char * string, uint8_t length, uint8_t base_index, bool clear_skipped) {
-    uint8_t * bytes = lcd_a2b(string, length);
+    uint8_t * bytes = lcd_a2b(string, length); // this involves MALLOC; need to free after!
     
     uint8_t i, index;
     index = base_index; 
@@ -122,5 +122,6 @@ void lcd_buf_write_string_multi(char * string, uint8_t length, uint8_t base_inde
             lcd_buf_write_byte(bytes[i], index++);
         }
     }
-    
+
+    free(bytes);    
 }
