@@ -22,7 +22,7 @@ float voltage_to_cm(float voltage);
 uint8_t measurement_type = 0;
 float voltage;
 uint8_t lcd_len;
-char lcd_buf[17];
+char lcd_buf[33];
 
 int main(void) {
     serial_init();
@@ -53,38 +53,58 @@ void SysTick_Handler(void) {
 
     uint16_t data_plain = adc_read(MP3_ADC_CHANNEL);
     voltage = to_voltage(data_plain);
+    uint16_t keypad_state = keypad_read();
+    uint8_t pressedKey;
 
     switch(measurement_type) {
 
         case DISTANCE_MEASUREMENT: 
-            lcd_buf_write_string("distance:", 8, 0);
-            
-            float cms = voltage_to_cm(voltage);
-            lcd_len = snprintf(lcd_buf, 16, "%06.4f cm",cms);
+            ;
+            if(keypad_read_diff(&pressedKey, keypad_state) != 0) {
+                char read_char[1];
+                read_char[0] = keymap_get_ascii_character(pressedKey);
+                measurement_type = atoi(read_char);
+                status_code(measurement_type);
+            }
+            else {
+                float cms = voltage_to_cm(voltage);
+                lcd_len = snprintf(lcd_buf, 32, "Distance:\n%06.4f cm ",cms);
 
-            lcd_buf_write_string(lcd_buf, lcd_len, 0);
-
+                lcd_buf_write_string_multi(lcd_buf, lcd_len, 0, true);
+            }
             break;
 
         case VOLTAGE_MEASUREMENT:
-            lcd_buf_write_string("voltage:", 8, 0);
-            lcd_len = snprintf(lcd_buf, 16, "%06.4f V",voltage);
+            ;
+            if(keypad_read_diff(&pressedKey, keypad_state) != 0) {
+                char read_char[1];
+                read_char[0] = keymap_get_ascii_character(pressedKey);
+                measurement_type = atoi(read_char);
+                status_code(measurement_type);
+            }
+            else {
+                lcd_len = snprintf(lcd_buf, 32, "Voltage: \n%06.4f V",voltage);
 
-            lcd_buf_write_string(lcd_buf, lcd_len, 0);
-
+                lcd_buf_write_string_multi(lcd_buf, lcd_len, 0, true);
+            }
             break;
 
         default:
             //whenever someone either doesn't press a key
             //or they press something that isn't 1 or 2
             ;
-            status_code(5);
-            uint16_t keypad_state = keypad_read();
-            uint8_t pressedKey;
+            
             if(keypad_read_diff(&pressedKey, keypad_state) != 0) {
-                measurement_type = atoi(keymap_get_ascii_character(pressedKey));
+                char read_char[1];
+                read_char[0] = keymap_get_ascii_character(pressedKey);
+                measurement_type = atoi(read_char);
+                status_code(measurement_type);
             }
-            else {}
+            else {
+                measurement_type = 0;
+                status_code(6);
+            }
+
             break;
         }
     lcd_buf_update();
@@ -94,6 +114,6 @@ void SysTick_Handler(void) {
 float voltage_to_cm(float voltage) {
     //figure out the function, convert it to cm
     //maybe just use a lookup table
-    return 69;
+    return (voltage * 3);
 }
 
