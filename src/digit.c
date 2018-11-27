@@ -1,19 +1,9 @@
-#include <lpc17xx_systick.h>
-#include "i2c.h"
-#include <stdbool.h>
+#include "digit.h"
+#include <stdio.h>
 
 #define DIGIT_I2C_ADDR 0x38
 
 // todo move to digit.h
-void digit_setPower(uint8_t pwr);
-void digit_enableSegmentTest(bool enabled);
-void digit_setBits(uint8_t digit, uint8_t mask);
-void digit_clearBits(uint8_t digit, uint8_t mask);
-void digit_setByte(uint8_t digit, uint8_t byte);
-void digit_writeHexByte(uint8_t val, bool high);
-void digit_writeTwoHexBytes(uint16_t val);
-uint8_t digit_digitToAddr(uint8_t digitNo);
-Status digit_update();
 
 /* 
  * 7 segment bit numbering
@@ -33,10 +23,12 @@ Status digit_update();
 
 static uint8_t digit_bytes[6] = {
     0x00, // subadress 0
-    0b01110111, // control register: full power (21mA), test OFF, no digits blanked, dynamic mode
+    0b01000111, // control register: power level 4 (12mA), test OFF, no digits blanked, dynamic mode
     0x00, 0x00, 0x00, 0x00 // data registers: all segments off
 };
 
+
+// digit char declarations could be externalised in for use elsewhere (D3ADB33F anyone?)
 static const uint8_t DIGIT_HEX_CHARS[] = {
     0b00111111, // 0
     0b00000110, // 1
@@ -130,6 +122,46 @@ void digit_writeTwoHexBytes(uint16_t val) {
 }
 
 /**
+ * Writes a value in the range [-999, 9999] to all four digits.
+ *  val: The value to represent
+ *  pad: whether to zero-pad (true) or blank-pad (false) values that do not take up all places
+ */
+void digit_writeDecValue(int16_t val, bool pad) { 
+    char buf[5];
+    if(-1000 < val && val < 10000) {
+        snprintf(buf, 5, pad ? "%04d" : "%4d", val);
+        uint8_t i;
+        for(i=0; i < 4; i++) {
+            if(48 <= buf[i] && buf[i] <= 57) {
+                digit_setByte(3-i, DIGIT_HEX_CHARS[buf[i]-48]);
+            }
+            else if(buf[i] == ' ') {
+                digit_clearBits(3-i, 0xFF);
+            }
+            else {
+                digit_setByte(3-i, DIGIT_CHAR_HYPEN);
+                // this handles both the negative sign case
+                // and the unknown char case :)
+            }
+        }
+    }
+    else {
+        // we CAN'T represent `val` here -- show an errorlike display
+        digit_setByte(0, DIGIT_CHAR_HYPEN);
+        digit_setByte(1, DIGIT_CHAR_HYPEN);
+        digit_setByte(2, DIGIT_CHAR_HYPEN);
+        digit_setByte(3, DIGIT_CHAR_HYPEN);
+    }
+}
+
+void digit_clear() {
+    digit_setByte(0, 0x00);
+    digit_setByte(1, 0x00);
+    digit_setByte(2, 0x00);
+    digit_setByte(3, 0x00);
+}
+
+/**
  * Converts a digit number (0-3) into the correct byte number for digit_bytes
  *  digitNo: the digit number (0 is least significant, rightmost)
  *  returns: correct index for digit_bytes
@@ -141,6 +173,7 @@ uint8_t digit_digitToAddr(uint8_t digitNo) {
         case 2: return 3;
         case 3: return 2;
     }
+    return 5; // just to shut GCC up
     // maybe use an array so we don't get complaints about non-void functions...
 }
 

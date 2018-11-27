@@ -13,6 +13,7 @@
 #include "lcd_buf.h"
 #include "i2c.h"
 #include "generatedfuncs.h"
+#include "digit.h"
 
 #define PWM_CHANNEL 3
 #define PWM_ENDVAL 0
@@ -47,6 +48,7 @@ int main(void) {
     i2c_setup_polling();
     lcd_init();
     lcd_buf_flush();
+    digit_update();
 
     SYSTICK_InternalInit(1);
     SYSTICK_IntCmd(ENABLE);
@@ -66,6 +68,8 @@ void SysTick_Handler(void) {
     if(keypad_state) {
         // key has been pressed (triggered on keydown)
         demo_stage++;
+        digit_writeDecValue(demo_stage, false);
+        digit_update();
     }
     // current stage function should be called repeatedly
     switch(demo_stage) {
@@ -161,7 +165,7 @@ void Stage4() {
             demo_stage++;
             break;
         default:
-            pwm_length += 4;
+            pwm_length += 8;
             break;
     }
 
