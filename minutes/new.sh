@@ -14,11 +14,11 @@ Team Meeting $DATE
 ===
 
 <!-- remember two spaces at end of line to break onto a new line -->
-*Chair*: $CHAIR  
-*Secretary*: $SEC
+**Chair**: $CHAIR  
+**Secretary**: $SEC
 
-*Present*: AB, CW, JP, LM  
-*Apologies*: None
+**Present**: AB, CW, JP, LM  
+**Apologies**: None
 
 ## Agenda
  - List items here
@@ -29,7 +29,7 @@ Team Meeting $DATE
 <!-- ## Any other business -->
 
 ## Actions
- - *##* List assigned actions to member ## here
+ - **##** List assigned actions to member ## here
 
 ## Signatures
 <!-- 
