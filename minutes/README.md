@@ -5,16 +5,16 @@ Minutes
 1. The _secretary_ runs `./new.sh` and fills in the details for _secretary_ and _chair_
 2. Open the newly created file and make sure the attendance section is correct
 3. Fill in Agenda, Minutes, and Actions as appropriate.
-4. Get members to sign minutes -- see *Signing* below
+4. Get members to sign minutes -- see **Signing** below
 
 ## Signing
 Minutes are signed with GPG signatures from each member. Keys _must_ be protected by a passphrase and kept on relevant computers.
 
 ### Generating
 Run `gpg --full-generate-key` to generate your signing key. Fill out the relevant info (consider adding that it's a key for EMPR in the Comment section):  
- - Kind of key: *(4) RSA (sign only)*
- - Keysize: Any size, *1024* will be fine.
- - Validity: Does not expire - *0*
+ - Kind of key: **(4) RSA (sign only)**
+ - Keysize: Any size, **1024** will be fine.
+ - Validity: Does not expire - **0**
 
 Then run `gpg --list-keys` and copy the id into `keys/ids.tsv`, in the following format:
 ```
