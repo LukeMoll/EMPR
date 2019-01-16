@@ -9,3 +9,4 @@ and Luke Moll.
 
 ## Code style
 Style guide can be found in [STYLE.md](STYLE.md).
+Code of Conduct can be found in [CodeOfConduct.md](CodeOfConduct.md)
