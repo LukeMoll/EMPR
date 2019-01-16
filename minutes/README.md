@@ -33,3 +33,4 @@ Once you've generated your keys, you can run `./sign.sh`. This will prompt you f
 Minutes from all the minutes can be found here:
 
 <!-- Do not write any content below this line -->
+[Spring/2/Wed 11 am](2019-01-15_Spring-02-Tue_11.md)
