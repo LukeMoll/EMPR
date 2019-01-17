@@ -35,6 +35,12 @@ Team Meeting $DATE
 <!-- 
 	Paste in entire GPG signed messages here 
 	Messages should have initials and date
+	Signatures should be surrounded with triple backticks (on their own line) and the full signature block should be copied. For example:
+	```
+	-----BEGIN PGP SIGNED MESSAGE-----
+		...
+	-----END PGP SIGNATURE-----
+	```
 -->
 
 	
