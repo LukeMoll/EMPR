@@ -181,7 +181,7 @@ void SPI_Buffer_Init(void) {
             Mic muted
             Mic boost 0dB
         */
-    SPI_Tx_Buf[0] = ctrl_addr | ctrl_data;
+    SPI_Tx_Buf[0] = ctrl_addr | ctrl_data; // expected 09fa
 
     ctrl_addr = (0b0000101) << 9;
     ctrl_data = 0b000000001; /**
@@ -189,7 +189,7 @@ void SPI_Buffer_Init(void) {
             De-emphasis control disabled
             ADC HPF disabled
         */
-    SPI_Tx_Buf[1] = ctrl_addr | ctrl_data;
+    SPI_Tx_Buf[1] = ctrl_addr | ctrl_data; // expected 0a01
 
     ctrl_addr = (0b0000111) << 9;
     ctrl_data = 0b000000010; /**
@@ -198,7 +198,7 @@ void SPI_Buffer_Init(void) {
             Input 32-bit length
             Data format I2S
         */
-    SPI_Tx_Buf[2] = ctrl_addr | ctrl_data;
+    SPI_Tx_Buf[2] = ctrl_addr | ctrl_data; // expected 0e02
 }
 
 void SPI_transmit(void) {
