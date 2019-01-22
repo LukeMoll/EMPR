@@ -23,7 +23,7 @@ volatile uint32_t I2SWriteLength = 0;
 SPI_CFG_Type SPI_ConfigStruct;
 
 #define SPI_DATABIT_SIZE                16
-#define SPI_BUFFER_SIZE                 0x3
+#define SPI_BUFFER_SIZE                 0x6 // this needs to be twice the number of 16-bit packets to send -- ie the number of BYTES
 uint16_t SPI_Tx_Buf[SPI_BUFFER_SIZE];
 uint16_t SPI_Rx_Buf[SPI_BUFFER_SIZE];
 
