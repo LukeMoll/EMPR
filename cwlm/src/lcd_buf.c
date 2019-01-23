@@ -126,11 +126,26 @@ void lcd_buf_write_string_multi(char * string, uint8_t length, uint8_t base_inde
     free(bytes);    
 }
 
-void lcd_buf_long_text(char * text_begin, uint8_t text_length, uint8_t * scrollup, uint8_t * scrolldown) {
-    uint32_t screen_begin = &text_begin;
+/**
+ * Scroll is incremented or decremented outside the function, depending on what you're using as scroll.
+ * text_begin is a pointer to the first element of the text, screen_begin is a pointer to where we are now. 
+ * During initialisation, screen_begin is set to text_begin (maybe have a different init function?)
+ * In this function, screen_begin is incremented by 0x10 * number of scrolldowns - or decremented by 0x10 since number of scrollups.
+ * the init basically returns the pointer to text begin, sends the first bit of text, makes sure that scroll exist.
+*/
+char * lcd_buf_long_text_init(char * text_begin, uint8_t text_length, int8_t * scroll) {
+    lcd_buf_write_string_multi(text_begin, 32, 0, true);
+    return text_begin;
+}
+
+void lcd_buf_long_text(char * text_begin, char * screen_begin, uint8_t text_length, int8_t * scroll) {
     uint32_t text_end = &text_begin + text_length;
     uint8_t screen_length = 0x20;
-
-    uint8_t charsleft = ((text_end - screen_begin) & 0x1F) + 1 //masks any length longer than 32, keeps anything smoller
-
+    uint8_t charsleft = ((text_end - screen_begin) & 0x1F) + 1; //masks any length longer than 32, keeps anything smoller - except it doesn't, but that's what I need it to do.
+    if((charsleft > 0) && (screen_begin != text_begin)) {
+        &screen_begin += (0x10 * scroll);
+    }
+    scroll = 0;
+    lcd_buf_write_string_multi(screen_begin, chars_left, 0, true);
+    buf_update();       
 }
