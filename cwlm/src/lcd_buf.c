@@ -125,3 +125,12 @@ void lcd_buf_write_string_multi(char * string, uint8_t length, uint8_t base_inde
 
     free(bytes);    
 }
+
+void lcd_buf_long_text(char * text_begin, uint8_t text_length, uint8_t * scrollup, uint8_t * scrolldown) {
+    uint32_t screen_begin = &text_begin;
+    uint32_t text_end = &text_begin + text_length;
+    uint8_t screen_length = 0x20;
+
+    uint8_t charsleft = ((text_end - screen_begin) & 0x1F) + 1 //masks any length longer than 32, keeps anything smoller
+
+}
