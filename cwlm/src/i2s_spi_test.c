@@ -2,6 +2,7 @@
 #include <lpc17xx_pinsel.h>
 #include <lpc17xx_spi.h>
 #include <lpc17xx_gpio.h>
+#include <stddef.h>
 #include "status.h"
 
 /** definitions from i2s_polling **/
@@ -23,7 +24,7 @@ volatile uint32_t I2SWriteLength = 0;
 SPI_CFG_Type SPI_ConfigStruct;
 
 #define SPI_DATABIT_SIZE                16
-#define SPI_BUFFER_SIZE                 0x6 // this needs to be twice the number of 16-bit packets to send -- ie the number of BYTES
+#define SPI_BUFFER_SIZE                 0x5 
 uint16_t SPI_Tx_Buf[SPI_BUFFER_SIZE];
 uint16_t SPI_Rx_Buf[SPI_BUFFER_SIZE];
 
@@ -35,13 +36,16 @@ void CS_Init(void);
 void CS_Force(int32_t state);
 void SPI_Buffer_Init(void);
 void SPI_transmit(void);
+void SPI_send(uint8_t, uint16_t);
+void SPI_transmit_mbedos(void);
 void I2S_transmit_loop(void);
 
 int main(void) {
     setup_spi();
     SPI_Buffer_Init();
     status_code(1);
-    SPI_transmit();
+    // SPI_transmit();
+    SPI_transmit_mbedos();
     status_code(2);
 
     setup_i2s();
@@ -54,10 +58,14 @@ int main(void) {
 void I2S_Buffer_Init(void) {
         uint32_t i;
 
-        for (i = 0; i < I2S_BUFFER_SIZE; i++) {
-                I2STXBuffer[i] = i+1;
-                I2SRXBuffer[i] = 0;
+        // for (i = 0; i < I2S_BUFFER_SIZE; i++) {
+        //         I2STXBuffer[i] = i+1;
+        //         I2SRXBuffer[i] = 0;
+        // }
+        for(i=0; i < I2S_BUFFER_SIZE; i++) {
+            I2STXBuffer[i] = (i & 1 << 8) == 0 ? 0x1FFF : 0x000F;
         }
+
 }
 
 void setup_i2s(void) {
@@ -95,7 +103,8 @@ void setup_i2s(void) {
     I2S_Init(LPC_I2S);
 
     I2S_ConfigStruct.wordwidth = I2S_WORDWIDTH_16;
-    I2S_ConfigStruct.mono = I2S_STEREO;
+    // I2S_ConfigStruct.mono = I2S_STEREO;
+    I2S_ConfigStruct.mono = I2S_MONO;
     I2S_ConfigStruct.stop = I2S_STOP_ENABLE;
     I2S_ConfigStruct.reset = I2S_RESET_ENABLE;
     I2S_ConfigStruct.ws_sel = I2S_MASTER_MODE;
@@ -143,7 +152,7 @@ void setup_spi(void) {
     PINSEL_ConfigPin(&PinCfg);
 
 
-    SPI_ConfigStruct.CPHA = SPI_CPHA_SECOND;
+    SPI_ConfigStruct.CPHA = SPI_CPHA_FIRST;
     SPI_ConfigStruct.CPOL = SPI_CPOL_LO;
     // SPI_ConfigStruct.ClockRate = 2000000;
        SPI_ConfigStruct.ClockRate = 2000000; // in Hz
@@ -155,7 +164,7 @@ void setup_spi(void) {
 
     SPI_Buffer_Init();
     CS_Init();
-    CS_Force(0);
+    // CS_Force(0);
 }
 
 void CS_Init(void) {
@@ -172,16 +181,26 @@ void CS_Force(int32_t state) {
 }
 
 void SPI_Buffer_Init(void) {
-    uint16_t ctrl_addr = (0b0000100) << 9;
-    uint16_t ctrl_data = 0b111111010; /**
-            Sidetone enabled @ 0dB
+    uint16_t ctrl_addr;
+    uint16_t ctrl_data;
+
+    ctrl_addr = (0b0001111) << 9;
+    ctrl_data = 0b000000000; /**
+            Reset
+        */
+    SPI_Tx_Buf[0] = ctrl_addr | ctrl_data; // expected 1e00
+
+    ctrl_addr = (0b0000100) << 9;
+    ctrl_data = 0b000010010; /** Analog path ctrl
+            // Sidetone enabled @ 0dB
+            Sidetone DISABLED
             DAC selected
             Bypass disabled
             Input select: line
             Mic muted
             Mic boost 0dB
         */
-    SPI_Tx_Buf[0] = ctrl_addr | ctrl_data; // expected 09fa
+    SPI_Tx_Buf[1] = ctrl_addr | ctrl_data; // expected 0812
 
     ctrl_addr = (0b0000101) << 9;
     ctrl_data = 0b000000001; /**
@@ -189,7 +208,7 @@ void SPI_Buffer_Init(void) {
             De-emphasis control disabled
             ADC HPF disabled
         */
-    SPI_Tx_Buf[1] = ctrl_addr | ctrl_data; // expected 0a01
+    SPI_Tx_Buf[2] = ctrl_addr | ctrl_data; // expected 0a01
 
     ctrl_addr = (0b0000111) << 9;
     ctrl_data = 0b000000010; /**
@@ -198,20 +217,80 @@ void SPI_Buffer_Init(void) {
             Input 32-bit length
             Data format I2S
         */
-    SPI_Tx_Buf[2] = ctrl_addr | ctrl_data; // expected 0e02
+    SPI_Tx_Buf[3] = ctrl_addr | ctrl_data; // expected 0e02
+
+    ctrl_addr = (0b0001001) << 9;
+    ctrl_data = 0b000000001; /**
+            Digital interface activated
+        */
+
+    SPI_Tx_Buf[4] = ctrl_addr | ctrl_data; // expected 1201
 }
 
 void SPI_transmit(void) {
     uint32_t tmp;
+    CS_Force(0);
     SPI_DATA_SETUP_Type xferConfig;
-    // for(tmp = 10000; tmp; tmp--);
     xferConfig.tx_data = SPI_Tx_Buf;
     xferConfig.rx_data = SPI_Rx_Buf;
-    xferConfig.length = SPI_BUFFER_SIZE;
+    xferConfig.length = SPI_BUFFER_SIZE * 2;// this needs to be twice the number of 16-bit packets to send -- ie the number of BYTES
     SPI_ReadWrite(LPC_SPI, &xferConfig, SPI_TRANSFER_POLLING);
-    for(tmp = 10000; tmp; tmp--);
     CS_Force(1);
+
     SPI_DeInit(LPC_SPI);
+}
+
+void SPI_send(uint8_t reg_addr, uint16_t reg_data) {
+    reg_addr = reg_addr & 0b01111111;
+    reg_data = reg_data & 0b111111111;
+    uint32_t tmp;
+    uint16_t tx_data = (reg_addr << 9) | reg_data;
+    SPI_DATA_SETUP_Type xferConfig;
+    xferConfig.tx_data = &tx_data;
+    xferConfig.rx_data = &tmp;
+    xferConfig.length = 2;
+    CS_Force(0);
+    SPI_ReadWrite(LPC_SPI, &xferConfig, SPI_TRANSFER_POLLING);
+    CS_Force(1);
+}
+
+void SPI_transmit_mbedos(void) {
+    // reset();                                //TLV resets
+    SPI_send(0b0001111, 0); // Expected: 0x1e00 
+    
+    // power(0x07);                            //Power Up the TLV320, but not the MIC, ADC and LINE
+    SPI_send(0b0000110, 7); // Expected: 0x0c07
+    
+    // format(16, STEREO);                     //16Bit I2S protocol format, STEREO
+    SPI_send(0b0000111, 96); // Expected: 0x0e60
+    
+    // frequency(44100);                       //Default sample frequency is 44.1kHz
+    SPI_send(0b0001000, 0x20); // Expected: 0x1020
+    
+    // bypass(false);                          //Do not bypass device
+    SPI_send(0b0000100, 0b000010010); // Expected: 0x0812
+
+    // mute(false);                            //Not muted
+    SPI_send(0b0000101, 0); // Expected: 0x0a00
+
+    // activateDigitalInterface_();            //The digital part of the chip is active
+    SPI_send(0b0001001, 0b000000001); // Expected: 0x1201
+
+    // outputVolume(0.7, 0.7);
+    SPI_send(0b0000010, 0b011111111); // Expected: 0x04ff
+    SPI_send(0b0000011, 0b011111111); // Expected: 0x06ff
+    /*
+        just to recap, that's
+         0x1e00
+         0x0c07
+         0x0e60
+         0x1020
+         0x0812
+         0x0a00
+         0x1201
+         0x04ff
+         0x06ff
+    */
 }
 
 void I2S_transmit_loop(void) {
