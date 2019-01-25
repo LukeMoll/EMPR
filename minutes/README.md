@@ -35,4 +35,8 @@ Minutes from all the minutes can be found here:
 <!-- Do not write any content below this line -->
 [Spring/2/Wed 11 am](2019-01-15_Spring-02-Tue_11.md)  
 [Spring/2/Thu 10 am](2019-01-17_Spring-02-Thu_10.md)  
+<<<<<<< HEAD
 [Spring/3/Tue 12 pm](2019-01-22_Spring-03-Tue_12.md)  
+=======
+[Spring/3/Fri 11 am](2019-01-25_Spring-03-Fri_11.md)  
+>>>>>>> 91711b7... Added minutes for today as sec.
