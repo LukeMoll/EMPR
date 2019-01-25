@@ -16,9 +16,10 @@ LDSCRIPT = $(CMSIS)/lib/ldscript_rom_gnu.ld
 
 THUMB2_LIB = $(PKG)/sourcery-g++-lite-arm-eabi-2010.09.51-i686-1/$(ARCH)/lib/thumb2
 
-LIBEMPR = ../libempr/out
-LIBEMPR_LIB = $(LIBEMPR)/lib
-LIBEMPR_INCLUDE = $(LIBEMPR)/include
+LIBEMPR_SRC = ../libempr
+LIBEMPR_LIB = $(LIBEMPR_SRC)/out/lib
+LIBEMPR_INCLUDE = $(LIBEMPR_SRC)/out/include
+LIBEMPR = $(LIBEMPR_LIB)/libempr.a
 
 INCLUDES = -I$(CMSIS_INCLUDE) -I$(LIBEMPR_INCLUDE)
 LIB_PATHS = -L$(THUMB2_LIB) -L$(CMSIS_LIB) -L$(LIBEMPR_LIB)
@@ -37,7 +38,7 @@ OBJ = $(patsubst %.c,%.o,$(wildcard *.c))
 
 all: $(BIN)
 
-$(BIN): $(LIBEMPR_LIB)/libempr.a $(OBJ)
+$(BIN): $(LIBEMPR) $(OBJ)
 	$(CC) -o $@ $(CMSIS_OBJ) $(OBJ) $(LDFLAGS) 
 	$(OBJCOPY) -I elf32-little -O binary $@
 
@@ -48,3 +49,6 @@ clean:
 install: $(BIN)
 	cp $< /media/$(USER)/MBED
 	sync
+
+$(LIBEMPR): $(wildcard $(LIBEMPR_SRC)/*.c $(LIBEMPR_SRC)/*.h)
+	make -C $(LIBEMPR_SRC) all
