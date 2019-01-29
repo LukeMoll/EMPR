@@ -11,7 +11,7 @@
 
 void RIT_IRQHandler(void);
 void intro_screen();
-uint8_t choose_mode();
+void choose_mode();
 void browser(void);
 void recording(void);
 
@@ -32,10 +32,10 @@ int main(void) {
     NVIC_EnableIRQ(RIT_IRQn);
 
     intro_screen();
-    choose_mode();
     status_code(11);
-    (*next_func)();
-    status_code(12);
+    while(1) {
+        (*next_func)();
+    }
     return 1;
     
 }
@@ -44,6 +44,7 @@ void intro_screen() {
     lcd_buf_write_string_multi("welcome,\nwelcome!", 18, 0, true);
     while(1) {  //for now, it's a press any key, can change to wait later
         if(keypad_state) {
+            next_func = &choose_mode;
             lcd_buf_clear_screen();
             keypad_state = 0;
             return;
@@ -52,39 +53,65 @@ void intro_screen() {
     }
 }
 
-uint8_t choose_mode() {
+void choose_mode() {
+    lcd_buf_clear_screen();
     lcd_buf_write_string_multi("1.Browser\n2.Recording", 23, 0, true);
-    uint8_t keypad_num;
+    char keypad_num;
     while(1){
         if(keypad_state) {
-            keypad_num = keymap_get_number(pressed_key);
-            status_code(keypad_num);
+            keypad_num = keymap_get_ascii_character(pressed_key);
             switch(keypad_num) {
-                case 1:
+                case '1':
                     ;
-                    status_code(5);
                     next_func = &browser;
                     break;
-                case 2:
+                case '2':
                     ;
-                    status_code(6);
                     next_func = &recording;
                     break;
+                // case 'D':
+                //     ;
+                //     next_func = &intro_screen;
+                //     break;
                 default: 
-                    status_code(7);
                     break;
             }
-            return keypad_num;
+            return;
             
         }
     }
-    return(3);
+    return;
 }
+
+char names[3][6] = {"name1", "name2", "name3"};
 
 void browser(void) {
     lcd_buf_clear_screen();
-    lcd_buf_write_string_multi("browser\n", 7, 0, true);
-    status_code(8);
+    lcd_buf_write_string("henlo      world", 16, 16); //replace this with the info string
+    while(1) {
+        if(keypad_state) { 
+            switch(keymap_get_ascii_character(pressed_key)) {
+                    break;
+                case 'A':
+                    ;
+                    break;
+                case 'B':
+                    ;
+                    break;
+                case 'D': //goes back to the previous function
+                    ;
+                    next_func = &choose_mode; // worth having a previous function pointer as well? that way we can break D out of each individual function?
+                    return;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+    // while(keymap_get_ascii_character(pressed_key) != 'D') {
+
+    // }
+    // next_func = &choose_mode;
     return;
 }
 
@@ -92,7 +119,31 @@ void recording(void) {
     lcd_buf_clear_screen();
     lcd_buf_write_string_multi("recording\n", 9, 0, true);
     status_code(9);
-    return;
+    while(1) {
+        if(keypad_state) {
+            switch(keymap_get_ascii_character(pressed_key)) {
+                case '2' :
+                    ;
+                    break;
+                case '8' :
+                    ;
+                    break;
+                case 'A':
+                    ;
+                    break;
+                case 'B':
+                    ;
+                    break;
+                case 'D':
+                    ;
+                    next_func = &choose_mode;
+                    break;
+                default:
+                    break;
+            }
+            return;
+        }
+    }
 }
 
 
@@ -102,4 +153,8 @@ void RIT_IRQHandler(void) {
     lcd_buf_update();
     keypad_state = keypad_read_diff(&pressed_key, key_val);
 }
+
+
+
+
 
