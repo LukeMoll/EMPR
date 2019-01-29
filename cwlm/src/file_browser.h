@@ -1,0 +1,4 @@
+#ifndef EMPR_FILE_BROSWER
+#define EMPR_FILE_BROWSER
+
+#endif
