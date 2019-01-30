@@ -15,13 +15,33 @@ void choose_mode();
 void browser(void);
 void recording(void);
 
-uint8_t pressed_key;
-uint16_t keypad_state;
-uint16_t key_val;
-void (*next_func)(void);
+#define DISABLE false
+#define ENABLE true
 
+/**
+ * keypad values: modified in RIT_IRQHandler (If they need to be modified). Can be accessed by any function 
+ */
+uint8_t pressed_key;    //which key has been pressed - meaningless on it's own, need to use the keymap functions with it
+uint16_t keypad_state; //has a key been pressed on the keypad?
+uint16_t key_val;   //used to get the keypad_state
 
+/**
+ * scrolling: scrolling modifies the top line of the screen (bottom line remains the same)
+ * if a function requires scrolling, then scrolling_active is ENABLEd. otherwise, it is DISABLEd. (default = DISABLE)
+ * if scrolling happens, then the function assigns the location to the first character of the text to text_begin
+ * when the key '2' is pressed, the pointer value is incremented by 16
+ * when the key '8' is pressed, the pointer value is decremented by 16
+*/
+bool scrolling_active 
+char *text_begin  
+void (*next_func)(void); 
+
+/*
+*configure everything, start the loop
+**/
 int main(void) {
+
+    scrolling_active = DISABLE;
 
     i2c_setup_polling();
     lcd_init();
@@ -34,13 +54,20 @@ int main(void) {
     intro_screen();
     status_code(11);
     while(1) {
+        //makes sure that the next function happens
         (*next_func)();
     }
     return 1;
     
 }
 
+/*
+* gives an intro screen, press any key to leave
+* scrolling is disabled
+**/
+
 void intro_screen() {
+    scrolling_active = DISABLE;
     lcd_buf_write_string_multi("welcome,\nwelcome!", 18, 0, true);
     while(1) {  //for now, it's a press any key, can change to wait later
         if(keypad_state) {
@@ -52,8 +79,14 @@ void intro_screen() {
         }
     }
 }
+/*
+* choose between browser mode, or recording mode 
+* scrolling is DISABLED cause there are only two options, so no need for is
+**/
 
 void choose_mode() {
+
+    scrolling_active = DISABLE;
     lcd_buf_clear_screen();
     lcd_buf_write_string_multi("1.Browser\n2.Recording", 23, 0, true);
     char keypad_num;
@@ -69,10 +102,6 @@ void choose_mode() {
                     ;
                     next_func = &recording;
                     break;
-                // case 'D':
-                //     ;
-                //     next_func = &intro_screen;
-                //     break;
                 default: 
                     break;
             }
@@ -84,18 +113,30 @@ void choose_mode() {
 }
 
 char names[3][6] = {"name1", "name2", "name3"};
-
+/**
+* browser mode (not fully implemented, biut I have a fairly solid idea of what's going on), can view files, and choose to playback, or find out info.
+* A is info
+* B is playback
+* D (back) brings us back to choose_mode
+* Scrolling is ENABLED
+*/
 void browser(void) {
+
+    scrolling_active = ENABLE;
+    //have a pointer to the array that is a list of names
     lcd_buf_clear_screen();
     lcd_buf_write_string("henlo      world", 16, 16); //replace this with the info string
+    //info char: UPPER_I_DOTFUL?
+    //playback char: CHR_ARROW_RIGHT
+    //'back' char : CHR_ARROW_LEFT
     while(1) {
         if(keypad_state) { 
             switch(keymap_get_ascii_character(pressed_key)) {
                     break;
-                case 'A':
+                case 'A': //info
                     ;
                     break;
-                case 'B':
+                case 'B': //playback
                     ;
                     break;
                 case 'D': //goes back to the previous function
@@ -115,6 +156,10 @@ void browser(void) {
     return;
 }
 
+/**
+* recording function (not yet implemented)
+* D (back) brings us back to choose mode
+*/
 void recording(void) {
     lcd_buf_clear_screen();
     lcd_buf_write_string_multi("recording\n", 9, 0, true);
@@ -148,8 +193,8 @@ void recording(void) {
 
 
 void RIT_IRQHandler(void) {
-    RIT_GetIntStatus(LPC_RIT);
-    key_val = keypad_read();
+    RIT_GetIntStatus(LPC_RIT);  // clear interrupt flag
+    key_val = keypad_read(); 
     lcd_buf_update();
     keypad_state = keypad_read_diff(&pressed_key, key_val);
 }
