@@ -6,9 +6,10 @@
 #include "status.h"
 
 /** definitions from i2s_polling **/
-#define I2S_BUFFER_SIZE                     0x800
+#define I2S_BUFFER_SIZE                     0x1000UL
 #define I2S_BUFFER_SRC                  LPC_AHBRAM1_BASE
-#define I2S_BUFFER_DST                  (I2S_BUFFER_SRC+0x1000UL)
+// #define I2S_BUFFER_DST                  (I2S_BUFFER_SRC+0x1000UL)
+#define I2S_BUFFER_DST                  (I2S_BUFFER_SRC+I2S_BUFFER_SIZE)
 
 // volatile uint8_t  I2STXDone = 0;
 // volatile uint8_t  I2SRXDone = 0;
@@ -49,7 +50,7 @@ int main(void) {
     status_code(2);
 
     setup_i2s();
-    I2S_Buffer_Init();
+    // I2S_Buffer_Init(); //(this is already done in setup_i2s - why do we need it twice?)
     status_code(3);
     I2S_transmit_loop();
     return 1;
@@ -63,7 +64,8 @@ void I2S_Buffer_Init(void) {
         //         I2SRXBuffer[i] = 0;
         // }
         for(i=0; i < I2S_BUFFER_SIZE; i++) {
-            I2STXBuffer[i] = (i & 1 << 8) == 0 ? 0x1FFF : 0x000F;
+            // I2STXBuffer[i] = (i & 1 << 8) == 0 ? 0x1FFF : 0x000F;
+            I2STXBuffer[i] = i >> 10;
         }
 
 }
@@ -124,6 +126,7 @@ void setup_i2s(void) {
     /* Set up frequency and bit rate*/
     I2S_FreqConfig(LPC_I2S, 44100, I2S_TX_MODE);
     I2S_SetBitRate(LPC_I2S, 0, I2S_RX_MODE);
+    I2S_SetBitRate(LPC_I2S, 15, I2S_TX_MODE); //why is it RX mode? Aren't we transmitting?
 
     I2S_Start(LPC_I2S);
 }
@@ -262,7 +265,8 @@ void SPI_transmit_mbedos(void) {
     SPI_send(0b0000110, 7); // Expected: 0x0c07
     
     // format(16, STEREO);                     //16Bit I2S protocol format, STEREO
-    SPI_send(0b0000111, 96); // Expected: 0x0e60
+    // SPI_send(0b0000111, 0b001100000); 
+    SPI_send(0b0000111, 0b000001100); 
     
     // frequency(44100);                       //Default sample frequency is 44.1kHz
     SPI_send(0b0001000, 0x20); // Expected: 0x1020
@@ -277,8 +281,8 @@ void SPI_transmit_mbedos(void) {
     SPI_send(0b0001001, 0b000000001); // Expected: 0x1201
 
     // outputVolume(0.7, 0.7);
-    SPI_send(0b0000010, 0b011111111); // Expected: 0x04ff
-    SPI_send(0b0000011, 0b011111111); // Expected: 0x06ff
+    SPI_send(0b0000010, 0b011010111); // Expected: 0x04ff
+    SPI_send(0b0000011, 0b011010111); // Expected: 0x06ff
     /*
         just to recap, that's
          0x1e00
@@ -293,12 +297,34 @@ void SPI_transmit_mbedos(void) {
     */
 }
 
+uint8_t wavetick = 0;
+
+uint32_t triangle(uint8_t wavetick) {
+    wavetick = wavetick & 0b01111111;
+    if(wavetick <= 32) { // wavetick in interval [0,32] -> [2^,]
+        return (wavetick << 26) + 0x80000000UL;
+    }
+    else if(wavetick <= 96) {
+        return 0x180000000UL - (wavetick << 26);
+    }
+    else {
+        return (wavetick << 26) - 0x180000000UL;
+    }
+}
+
+uint32_t sawtooth(uint8_t wavetick) {
+    wavetick = wavetick & 0b01111111;
+    return wavetick << 25;
+}
+
 void I2S_transmit_loop(void) {
     while(1) {
-        I2S_Send(LPC_I2S,I2STXBuffer[I2SWriteLength]);
-        I2SWriteLength +=1;
-        if(I2SWriteLength == I2S_BUFFER_SIZE) { // I2STXDone = 1;
-                I2SWriteLength = 0;
-        }
+        I2S_Send(LPC_I2S,sawtooth(wavetick++));
+        // I2S_Send(LPC_I2S,I2STXBuffer[I2SWriteLength]);
+        // I2SWriteLength +=1;
+        // if(I2SWriteLength == I2S_BUFFER_SIZE) { // I2STXDone = 1;
+        //         return;
+        //         I2SWriteLength = 0;
+        // }
     }
 }
