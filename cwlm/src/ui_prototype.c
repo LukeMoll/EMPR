@@ -1,5 +1,6 @@
 #include <lpc17xx_timer.h>
 #include <lpc17xx_rit.h>
+#include <lpc17xx_rtc.h>
 
 #include "i2c.h"
 #include "lcd.h"
@@ -53,6 +54,10 @@ int main(void) {
     RIT_Init(LPC_RIT);
     RIT_TimerConfig(LPC_RIT, 100);
     NVIC_EnableIRQ(RIT_IRQn);
+
+    RTC_Init(LPC_RTC);
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, 0);
+    RTC_Cmd(LPC_RTC, ENABLE);
 
     intro_screen();
     while(1) {
@@ -203,15 +208,17 @@ void recording_intro(void) {
  * D is back, A in 'enter'
 */
 void generate_name(void) {
-    // status_code(4); // TODO: put this back
     lcd_buf_clear_screen();
-    lcd_buf_write_string("name", 5, 0);
+    uint32_t time = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_SECOND);
+    char buf[17];
+    uint8_t buf_length = snprintf(buf, 16, "%015x", time); //Can change this later, for now just wanted to get RTC working
+    lcd_buf_write_string(buf, buf_length, 0);
     while(1) {
         if(keypad_state) {
             switch(keymap_get_ascii_character(pressed_key)) {
                 case 'A':
                     ;
-                    start_recording("name            ");//yeah I know, gimme a sec to see if this even works
+                    start_recording(buf);
                     break;
                 case 'D' :
                     ;
