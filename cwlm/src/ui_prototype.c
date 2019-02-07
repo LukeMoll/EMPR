@@ -31,6 +31,9 @@ void start_recording(char buf[17]);
 uint8_t pressed_key;    //which key has been pressed - meaningless on it's own, need to use the keymap functions with it
 uint16_t keypad_state; //has a key been pressed on the keypad?
 uint16_t key_val;   //used to get the keypad_state
+uint8_t memory_size = 16; //change this later when we know how many files we can have
+line_size = 16;
+char list_of_text[memory_size][line_size] //pointer to the first char of the first line
 
 /**
  * scrolling: scrolling modifies the top line of the screen (bottom line remains the same)
@@ -40,7 +43,33 @@ uint16_t key_val;   //used to get the keypad_state
  * when the key '8' is pressed, the pointer value is decremented by 16
 */
 // bool scrolling_active 
-// char *text_begin  
+// char char buf[3];
+
+    status_code(1);
+    uint8_t month = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, atoi(buf));
+
+    status_code(2);
+    uint8_t day = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
+
+    status_code(3);
+    uint8_t hour = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
+
+    status_code(4);
+    uint8_t minute = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
+
+    status_code(5);
+    uint8_t second = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
+    RTC_Cmd(LPC_RTC, ENABLE);*text_begin  
 void (*next_func)(void); 
 
 /*
@@ -58,50 +87,103 @@ int main(void) {
     RIT_TimerConfig(LPC_RIT, 100);
     NVIC_EnableIRQ(RIT_IRQn);
 
-    serial_init(void);
+    serial_init();
 
     RTC_Init(LPC_RTC);
 
     /**
      * TODO: write a script that sends 
-     * % date +"%m" > ttyACM0
-     * % date +"%d" > ttyACM0
-     * % date +"%H" > ttyACM0
-     * % date +"%M" > ttyACM0
-     * % date +"%S" > ttyACM0
+     * % date +"%m" > /dev/ttyACM0
+     * % date +"%d" > /dev/ttyACM0
+     * %char buf[3];
+
+    status_code(1);
+    uint8_t month = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, atoi(buf));
+
+    status_code(2);
+    uint8_t day = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
+
+    status_code(3);
+    uint8_t hour = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
+
+    status_code(4);
+    uint8_t minute = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
+
+    status_code(5);
+    uint8_t second = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
+    RTC_Cmd(LPC_RTC, ENABLE); date +"%H" > /dev/ttyACM0
+     * % date +"%M" > /dev/ttyACM0
+     * % date +"%S" > /dev/ttyACM0
+     * currently only works if you enter things via screen (unsure why)
     */
 
     char buf[3];
-    uint8_t month = write_usb_serial_none_blocking(buf, 3);
+
+    status_code(1);
+    uint8_t month = read_usb_serial_blocking(buf, 2);
 
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, atoi(buf));
-    RTC_Cmd(LPC_RTC, ENABLE);
 
-    char buf[3];
-    uint8_t day = write_usb_serial_none_blocking(buf, 3);
+    status_code(2);
+    uintchar buf[3];
+
+    status_code(1);
+    uint8_t month = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, atoi(buf));
+
+    status_code(2);
+    uint8_t day = read_usb_serial_blocking(buf, 3);
 
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
-    RTC_Cmd(LPC_RTC, ENABLE);
 
-    char buf[3];
-    uint8_t hour = write_usb_serial_none_blocking(buf, 3);
+    status_code(3);
+    uint8_t hour = read_usb_serial_blocking(buf, 3);
 
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
-    RTC_Cmd(LPC_RTC, ENABLE);
 
-    char buf[3];
-    uint8_t minute = write_usb_serial_none_blocking(buf, 3);
+    status_code(4);
+    uint8_t minute = read_usb_serial_blocking(buf, 3);
 
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
-    RTC_Cmd(LPC_RTC, ENABLE);
 
-    char buf[3];
-    uint8_t second = write_usb_serial_none_blocking(buf, 3);
+    status_code(5);
+    uint8_t second = read_usb_serial_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
+    RTC_Cmd(LPC_RTC, ENABLE);8_t day = read_usb_serial_blocking(buf, 2);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
+
+    status_code(3);
+    uint8_t hour = read_usb_serial_blocking(buf, 2);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
+
+    status_code(4);
+    uint8_t minute = read_usb_serial_blocking(buf, 2);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
+
+    status_code(5);
+    uint8_t second = read_usb_serial_blocking(buf, 2);
 
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
     RTC_Cmd(LPC_RTC, ENABLE);
 
     intro_screen();
+    status_code(16);
+
     while(1) {
         //makes sure that the next function happens
         (*next_func)();
@@ -171,28 +253,41 @@ char names[3][6] = {"name1", "name2", "name3"};
 */
 void browser(void) {
 
+    //list_of_text = list_of_titles
     // scrolling_active = ENABLE;
     //have a pointer to the array that is a list of names
+    uint8_t index = 0;
     lcd_buf_clear_screen();
     lcd_buf_write_string("henlo      world", 16, 16); //replace this with the info string
     //info char: UPPER_I_DOTFUL?
     //playback char: CHR_ARROW_RIGHT
     //'back' char : CHR_ARROW_LEFT
+
     while(1) {
+        current_name = list_of_titles[index]
+        lcd_buf_write_string(current_name, 16, 0)
         if(keypad_state) { 
             switch(keymap_get_ascii_character(pressed_key)) {
                     break;
                 case 'A': //info
                     ;
+                    info(current_name);
                     break;
                 case 'B': //playback
                     ;
+                    playback(current_name)
                     break;
                 case 'D': //goes back to the previous function
                     ;
                     next_func = &choose_mode; // worth having a previous function pointer as well? that way we can break D out of each individual function?
                     return;
                     break;
+                case '2':
+                    if(index<memory_size) 
+                        index++;
+                case '8':
+                    if(index>0)
+                        index--l
                 default:
                     break;
             }
@@ -248,6 +343,7 @@ void recording_intro(void) {
  * automatically generates a name (based on rtc?)
  * no scrolling
  * D is back, A in 'enter'
+ * RTC doesn't fully work yet
 */
 void generate_name(void) {
     lcd_buf_clear_screen();
@@ -338,6 +434,36 @@ void start_recording(char buf[17]) {
     lcd_buf_write_string(buf, 17, 16);
     while(1){};
     return;
+}
+
+info(char title[16]) {
+    /**
+     * TODO:
+     * FIL *current_file
+     * fopen(*current_file, title, "r")
+     * figure out how to get file info
+     * list_of_text = info_text
+     * implement scrolling and back buttons
+     * D returns
+    */
+}
+
+playback(char title[16]) {
+    void bufout[16] //or wev wordlength is for i2s
+    uint32_t toread = 0;    //size of the file, should be able to get it like we do in info
+    uint32_t hasread;   //use this to display time left later
+    /**
+     * FIL *current_file
+     * TODO:
+     * fopen(*current_file, title, "r");
+     * while(hasread < toread) {
+     *  fread(*current_file, bufout, toread, &hasread);
+     *  i2s_play(bufout, speed);
+     *  do something to do with displaying time using hasread
+     * }
+     * fclose(*current_file);
+     * return;
+    */
 }
 
 
