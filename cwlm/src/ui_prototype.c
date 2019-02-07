@@ -2,6 +2,8 @@
 #include <lpc17xx_rit.h>
 #include <lpc17xx_rtc.h>
 
+#include <stdlib.h>
+
 #include "i2c.h"
 #include "lcd.h"
 #include "lcd_buf.h"
@@ -9,6 +11,7 @@
 #include "keypad.h"
 #include "keymap.h"
 #include "status.h"
+#include "serial.h"
 
 void RIT_IRQHandler(void);
 void intro_screen();
@@ -55,8 +58,47 @@ int main(void) {
     RIT_TimerConfig(LPC_RIT, 100);
     NVIC_EnableIRQ(RIT_IRQn);
 
+    serial_init(void);
+
     RTC_Init(LPC_RTC);
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, 0);
+
+    /**
+     * TODO: write a script that sends 
+     * % date +"%m" > ttyACM0
+     * % date +"%d" > ttyACM0
+     * % date +"%H" > ttyACM0
+     * % date +"%M" > ttyACM0
+     * % date +"%S" > ttyACM0
+    */
+
+    char buf[3];
+    uint8_t month = write_usb_serial_none_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, atoi(buf));
+    RTC_Cmd(LPC_RTC, ENABLE);
+
+    char buf[3];
+    uint8_t day = write_usb_serial_none_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
+    RTC_Cmd(LPC_RTC, ENABLE);
+
+    char buf[3];
+    uint8_t hour = write_usb_serial_none_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
+    RTC_Cmd(LPC_RTC, ENABLE);
+
+    char buf[3];
+    uint8_t minute = write_usb_serial_none_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
+    RTC_Cmd(LPC_RTC, ENABLE);
+
+    char buf[3];
+    uint8_t second = write_usb_serial_none_blocking(buf, 3);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
     RTC_Cmd(LPC_RTC, ENABLE);
 
     intro_screen();
@@ -209,9 +251,13 @@ void recording_intro(void) {
 */
 void generate_name(void) {
     lcd_buf_clear_screen();
-    uint32_t time = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_SECOND);
+    uint32_t month = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_MONTH);
+    uint32_t day = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH);
+    uint32_t hour = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_HOUR);
+    uint32_t minute = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_MINUTE);
+    uint32_t seconds = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_SECOND);
     char buf[17];
-    uint8_t buf_length = snprintf(buf, 16, "%015x", time); //Can change this later, for now just wanted to get RTC working
+    uint8_t buf_length = snprintf(buf, 16, "%02s/%02s - %02s:%02s:%02s", month, day, hour, minute, seconds); //Can change this later, for now just wanted to get RTC working
     lcd_buf_write_string(buf, buf_length, 0);
     while(1) {
         if(keypad_state) {
