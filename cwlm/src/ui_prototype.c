@@ -3,6 +3,7 @@
 #include <lpc17xx_rtc.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "i2c.h"
 #include "lcd.h"
@@ -21,6 +22,8 @@ void recording_intro(void);
 void generate_name(void);
 void type_name(void);
 void start_recording(char buf[17]);
+void info(char title[16]);
+void playback(char title[16]);
 
 // #define DISABLE false
 // #define ENABLE true
@@ -28,12 +31,16 @@ void start_recording(char buf[17]);
 /**
  * keypad values: modified in RIT_IRQHandler (If they need to be modified). Can be accessed by any function 
  */
+
 uint8_t pressed_key;    //which key has been pressed - meaningless on it's own, need to use the keymap functions with it
 uint16_t keypad_state; //has a key been pressed on the keypad?
 uint16_t key_val;   //used to get the keypad_state
+
 uint8_t memory_size = 16; //change this later when we know how many files we can have
-line_size = 16;
-char list_of_text[memory_size][line_size] //pointer to the first char of the first line
+uint8_t line_size = 16;
+// char list_of_text[memory_size][line_size]; //pointer to the first char of the first line
+
+void (*next_func)(void); 
 
 /**
  * scrolling: scrolling modifies the top line of the screen (bottom line remains the same)
@@ -45,32 +52,6 @@ char list_of_text[memory_size][line_size] //pointer to the first char of the fir
 // bool scrolling_active 
 // char char buf[3];
 
-    status_code(1);
-    uint8_t month = read_usb_serial_blocking(buf, 3);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, atoi(buf));
-
-    status_code(2);
-    uint8_t day = read_usb_serial_blocking(buf, 3);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
-
-    status_code(3);
-    uint8_t hour = read_usb_serial_blocking(buf, 3);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
-
-    status_code(4);
-    uint8_t minute = read_usb_serial_blocking(buf, 3);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
-
-    status_code(5);
-    uint8_t second = read_usb_serial_blocking(buf, 3);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
-    RTC_Cmd(LPC_RTC, ENABLE);*text_begin  
-void (*next_func)(void); 
 
 /*
 *configure everything, start the loop
@@ -96,91 +77,46 @@ int main(void) {
      * % date +"%m" > /dev/ttyACM0
      * % date +"%d" > /dev/ttyACM0
      * %char buf[3];
-
-    status_code(1);
-    uint8_t month = read_usb_serial_blocking(buf, 3);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, atoi(buf));
-
-    status_code(2);
-    uint8_t day = read_usb_serial_blocking(buf, 3);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
-
-    status_code(3);
-    uint8_t hour = read_usb_serial_blocking(buf, 3);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
-
-    status_code(4);
-    uint8_t minute = read_usb_serial_blocking(buf, 3);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
-
-    status_code(5);
-    uint8_t second = read_usb_serial_blocking(buf, 3);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
-    RTC_Cmd(LPC_RTC, ENABLE); date +"%H" > /dev/ttyACM0
      * % date +"%M" > /dev/ttyACM0
      * % date +"%S" > /dev/ttyACM0
      * currently only works if you enter things via screen (unsure why)
     */
 
-    char buf[3];
+    // char buf[3];
 
-    status_code(1);
-    uint8_t month = read_usb_serial_blocking(buf, 2);
+    // status_code(1);
+    // uint8_t month = read_usb_serial_blocking(buf, 2);
 
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, atoi(buf));
+    // RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, atoi(buf));
 
-    status_code(2);
-    uintchar buf[3];
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, 2);
 
-    status_code(1);
-    uint8_t month = read_usb_serial_blocking(buf, 3);
+    // status_code(2);
+    // uint8_t day = read_usb_serial_blocking(buf, 3);
 
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, atoi(buf));
+    // RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, 8);
 
-    status_code(2);
-    uint8_t day = read_usb_serial_blocking(buf, 3);
+    // status_code(3);
+    // uint8_t hour = read_usb_serial_blocking(buf, 3);
 
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
+    // RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, 13);
 
-    status_code(3);
-    uint8_t hour = read_usb_serial_blocking(buf, 3);
+    // status_code(4);
+    // uint8_t minute = read_usb_serial_blocking(buf, 3);
 
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
+    // RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
 
-    status_code(4);
-    uint8_t minute = read_usb_serial_blocking(buf, 3);
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, 5);
 
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
+    // status_code(5);
+    // uint8_t second = read_usb_serial_blocking(buf, 3);
 
-    status_code(5);
-    uint8_t second = read_usb_serial_blocking(buf, 3);
+    // RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
 
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
-    RTC_Cmd(LPC_RTC, ENABLE);8_t day = read_usb_serial_blocking(buf, 2);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
-
-    status_code(3);
-    uint8_t hour = read_usb_serial_blocking(buf, 2);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
-
-    status_code(4);
-    uint8_t minute = read_usb_serial_blocking(buf, 2);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
-
-    status_code(5);
-    uint8_t second = read_usb_serial_blocking(buf, 2);
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, 43);
     RTC_Cmd(LPC_RTC, ENABLE);
-
     intro_screen();
     status_code(16);
 
@@ -263,9 +199,11 @@ void browser(void) {
     //playback char: CHR_ARROW_RIGHT
     //'back' char : CHR_ARROW_LEFT
 
+    char *current_name;
+
     while(1) {
-        current_name = list_of_titles[index]
-        lcd_buf_write_string(current_name, 16, 0)
+        // current_name = list_of_text[index];
+        // lcd_buf_write_string(current_name, 16, 0);
         if(keypad_state) { 
             switch(keymap_get_ascii_character(pressed_key)) {
                     break;
@@ -275,7 +213,7 @@ void browser(void) {
                     break;
                 case 'B': //playback
                     ;
-                    playback(current_name)
+                    playback(current_name);
                     break;
                 case 'D': //goes back to the previous function
                     ;
@@ -283,11 +221,17 @@ void browser(void) {
                     return;
                     break;
                 case '2':
-                    if(index<memory_size) 
+                    ;
+                    if(index<memory_size) {
                         index++;
+                    };
+                    break;
                 case '8':
-                    if(index>0)
-                        index--l
+                    ;
+                    if(index>0) {
+                        index--;
+                    };
+                    break;
                 default:
                     break;
             }
@@ -297,7 +241,6 @@ void browser(void) {
 
     // }
     // next_func = &choose_mode;
-    return;
 }
 
 /**
@@ -407,7 +350,7 @@ void type_name(void) {
                     case 'C':
                     ;
                     break;
-                case '#':
+                case '#': 
                     ;
                     break;
                 case '*':
@@ -449,7 +392,7 @@ info(char title[16]) {
 }
 
 playback(char title[16]) {
-    void bufout[16] //or wev wordlength is for i2s
+    uint16_t bufout[16]; //or wev wordlength is for i2s
     uint32_t toread = 0;    //size of the file, should be able to get it like we do in info
     uint32_t hasread;   //use this to display time left later
     /**
