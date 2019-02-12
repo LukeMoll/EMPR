@@ -46,7 +46,7 @@ $(BIN): $(LIBEMPR) $(OBJ)
 
 clean:
 	rm -f $(BIN)
-	rm -f $(OBJ)
+	rm -f *.o
 
 install: $(BIN)
 	cp $< /media/$(USER)/MBED
