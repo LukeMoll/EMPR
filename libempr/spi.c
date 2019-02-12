@@ -29,7 +29,7 @@ void spi_init(void) {
 	spi_cfg.CPHA = SPI_CPHA_SECOND;
 	spi_cfg.CPOL = SPI_CPOL_LO;
 	spi_cfg.ClockRate = 10000;
-	spi_cfg.Databit = 10;
+	spi_cfg.Databit = SPI_DATABIT_8;
 
 	SPI_Init(LPC_SPI, &spi_cfg);
 

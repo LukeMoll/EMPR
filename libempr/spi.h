@@ -2,6 +2,7 @@
 #define LIBEMPR_SPI_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 void spi_init(void);
 void spi_cs_init(uint8_t portnum, uint8_t pinnum);
