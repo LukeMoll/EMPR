@@ -1,6 +1,6 @@
 BIN = empr.bin
 
-ENTRY ?= main
+MAIN ?= main
 
 PKG = /opt/york/cs/net
 PATH := $(PKG)/bin:$(PATH)
@@ -32,10 +32,9 @@ CFLAGS = -std=gnu99 -O0 -Wall $(INCLUDES) -D__thumb2__=1 -D__RAM_MODE__=0 \
 	-march=armv7-m -mfix-cortex-m3-ldrd
 
 LDFLAGS = -static -mcpu=cortex-m3 -mthumb -mthumb-interwork $(LIB_PATHS) \
-	-lempr -lDriversLPC17xxgnu -lc -lg -lstdc++ -lsupc++ -lgcc -lm \
-	-Wl,-e$(ENTRY) -T$(LDSCRIPT)
+	-lempr -lDriversLPC17xxgnu -lc -lg -lstdc++ -lsupc++ -lgcc -lm -T$(LDSCRIPT)
 
-OBJ = $(patsubst %.c,%.o,$(wildcard *.c))
+OBJ = $(MAIN).o
 
 .PHONY: all clean install
 
