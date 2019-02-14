@@ -149,7 +149,7 @@ void SPI_transmit_mbedos(void) {
     
     // format(16, STEREO);                     //16Bit I2S protocol format, STEREO
     // SPI_send(0b0000111, 0b001100000); 
-    SPI_send(0b0000111, 0b000001100); 
+    SPI_send(0b0000111, 0b000000010); 
     
     // frequency(44100);                       //Default sample frequency is 44.1kHz
     SPI_send(0b0001000, 0x20); // Expected: 0x1020
