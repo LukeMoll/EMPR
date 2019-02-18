@@ -192,6 +192,14 @@ void browser(void) {
     //list_of_text = list_of_titles
     // scrolling_active = ENABLE;
     //have a pointer to the array that is a list of names
+    
+    /**
+    *FRESULT f_readdir (
+	DIR* dp,			 Pointer to the open directory object 
+	FILINFO* fno		 Pointer to file information to return 
+   )
+                    */
+    //the info we wanna return is names
     uint8_t index = 0;
     lcd_buf_clear_screen();
     lcd_buf_write_string("henlo      world", 16, 16); //replace this with the info string
@@ -210,10 +218,18 @@ void browser(void) {
                 case 'A': //info
                     ;
                     info(current_name);
+                    /**
+                    *FRESULT f_readdir (
+	                DIR* dp,			 Pointer to the open directory object 
+	                FILINFO* fno		 Pointer to file information to return 
+                    )
+                    */
                     break;
                 case 'B': //playback
                     ;
                     playback(current_name);
+                    //open the file into a buffer
+                    //send that file to the audioboard
                     break;
                 case 'D': //goes back to the previous function
                     ;
@@ -375,6 +391,10 @@ void start_recording(char buf[17]) {
     lcd_buf_clear_screen();
     lcd_buf_write_string("we're recording", 15, 0);
     lcd_buf_write_string(buf, 17, 16);
+    //open a file with the name
+    //create a buf
+    //read from the audioboard into the buf
+    //write the buf to the sd card
     while(1){};
     return;
 }
@@ -384,7 +404,9 @@ info(char title[16]) {
      * TODO:
      * FIL *current_file
      * fopen(*current_file, title, "r")
-     * figure out how to get file info
+     * have an array of types of info
+     * iterate through that array and use 
+     * FRESULT f_readdir() with the type of info and then read the line that has to do with whatever we want.
      * list_of_text = info_text
      * implement scrolling and back buttons
      * D returns
