@@ -82,41 +82,55 @@ int main(void) {
      * currently only works if you enter things via screen (unsure why)
     */
 
-    // char buf[3];
+    
+    uint8_t buf;
 
     // status_code(1);
     // uint8_t month = read_usb_serial_blocking(buf, 2);
 
-    // RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, atoi(buf));
+    //atoi is being screwy, unsure how to fix
 
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, 2);
+    status_code(1);
+    uint8_t month = 0;
+    while(!month) {
+        month = read_usb_serial_blocking(&buf, 1);
+    }
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, buf);
 
-    // status_code(2);
-    // uint8_t day = read_usb_serial_blocking(buf, 3);
+    lcd_buf_write_string("please send day", 15, 0);
+    /**
+    lcd_buf_update();
+    uint8_t day = 0;
+    while(!month) {
+        day = read_usb_serial_blocking(buf, 2);
+    }
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
 
-    // RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, atoi(buf));
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, 8);
+    uint8_t hour = 0;
+    while(!hour) {
+        hour = read_usb_serial_blocking(buf, 2);
+    }
 
-    // status_code(3);
-    // uint8_t hour = read_usb_serial_blocking(buf, 3);
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
 
-    // RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, atoi(buf));
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_HOUR, 13);
+    uint8_t minute = 0;
+    while(!minute) {
+        minute = read_usb_serial_blocking(buf, 2);
+    }
 
-    // status_code(4);
-    // uint8_t minute = read_usb_serial_blocking(buf, 3);
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
+    uint8_t sec = 0;
+    while(!sec) {
+        sec = read_usb_serial_blocking(buf, 2);
+    }
+    status_code(atoi(buf));
 
-    // RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, atoi(buf));
 
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, 5);
-
-    // status_code(5);
-    // uint8_t second = read_usb_serial_blocking(buf, 3);
-
-    // RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
-
-    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, 43);
     RTC_Cmd(LPC_RTC, ENABLE);
+
+    RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, atoi(buf));
+    */
+
     intro_screen();
     status_code(16);
 
