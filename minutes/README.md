@@ -39,3 +39,4 @@ Minutes from all the minutes can be found here:
 [Spring/3/Fri 11 am](2019-01-25_Spring-03-Fri_11.md)  
 [Spring/4/Fri 13 pm](2019-02-01_Spring-04-Fri_13.md)  
 [Spring/5/Fri 10 am](2019-02-08_Spring-05-Fri_10.md)  
+[Spring/7/Fri 10 am](2019-02-22_Spring-07-Fri_10.md)  
