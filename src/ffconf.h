@@ -25,7 +25,7 @@
 /   3: f_lseek() function is removed in addition to 2. */
 
 
-#define FF_USE_STRFUNC	0
+#define FF_USE_STRFUNC	1
 /* This option switches string functions, f_gets(), f_putc(), f_puts() and f_printf().
 /
 /  0: Disable string functions.
@@ -33,7 +33,7 @@
 /  2: Enable with LF-CRLF conversion. */
 
 
-#define FF_USE_FIND		0
+#define FF_USE_FIND		1
 /* This option switches filtered directory read functions, f_findfirst() and
 /  f_findnext(). (0:Disable, 1:Enable 2:Enable with matching altname[] too) */
 
@@ -60,7 +60,7 @@
 /  (0:Disable or 1:Enable) */
 
 
-#define FF_USE_FORWARD	0
+#define FF_USE_FORWARD	1
 /* This option switches f_forward() function. (0:Disable or 1:Enable) */
 
 
@@ -68,7 +68,7 @@
 / Locale and Namespace Configurations
 /---------------------------------------------------------------------------*/
 
-#define FF_CODE_PAGE	932
+#define FF_CODE_PAGE	437
 /* This option specifies the OEM code page to be used on the target system.
 /  Incorrect code page setting can cause a file open failure.
 /
@@ -150,7 +150,7 @@
 */
 
 
-#define FF_FS_RPATH		0
+#define FF_FS_RPATH		2
 /* This option configures support for relative path.
 /
 /   0: Disable relative path and remove related functions.
@@ -236,7 +236,7 @@
 /  Note that enabling exFAT discards ANSI C (C89) compatibility. */
 
 
-#define FF_FS_NORTC		0
+#define FF_FS_NORTC		1
 #define FF_NORTC_MON	1
 #define FF_NORTC_MDAY	1
 #define FF_NORTC_YEAR	2018

@@ -34,7 +34,7 @@ CFLAGS = -std=gnu99 -O0 -Wall $(INCLUDES) -D__thumb2__=1 -D__RAM_MODE__=0 \
 LDFLAGS = -static -mcpu=cortex-m3 -mthumb -mthumb-interwork $(LIB_PATHS) \
 	-lempr -lDriversLPC17xxgnu -lc -lg -lstdc++ -lsupc++ -lgcc -lm -T$(LDSCRIPT)
 
-OBJ = $(MAIN).o
+OBJ = $(MAIN).o diskio.o ff.o ffsystem.o
 
 .PHONY: all clean install
 

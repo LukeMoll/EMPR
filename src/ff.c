@@ -1,8 +1,7 @@
 /*----------------------------------------------------------------------------/
 /  FatFs - Generic FAT Filesystem Module  R0.13c                              /
 /-----------------------------------------------------------------------------/
-/
-/ Copyright (C) 2018, ChaN, all right reserved.
+/ / Copyright (C) 2018, ChaN, all right reserved.
 /
 / FatFs module is an open source software. Redistribution and use of FatFs in
 / source and binary forms, with or without modification, are permitted provided
@@ -1146,7 +1145,7 @@ static DWORD clst2sect (	/* !=0:Sector number, 0:Failed (invalid cluster#) */
 /* FAT access - Read value of a FAT entry                                */
 /*-----------------------------------------------------------------------*/
 
-static DWORD get_fat (		/* 0xFFFFFFFF:Disk error, 1:Internal error, 2..0x7FFFFFFF:Cluster status */
+static DWORD get_fat (		/* 0xFFFFFFFF:Disk error, 1:Internal error, 2..0x7FFFFFFF:Clusterstatus */
 	FFOBJID* obj,	/* Corresponding object */
 	DWORD clst		/* Cluster number to get the value */
 )
