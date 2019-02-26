@@ -1,9 +1,10 @@
 #include <lpc17xx_timer.h>
-#include <lpc17xx_rit.h>
+#include <lpc17xx_systick.h>
 #include <lpc17xx_rtc.h>
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "i2c.h"
 #include "lcd.h"
@@ -14,7 +15,7 @@
 #include "status.h"
 #include "serial.h"
 
-void RIT_IRQHandler(void);
+void SysTick_Handler(void);
 void intro_screen();
 void choose_mode();
 void browser(void);
@@ -25,11 +26,9 @@ void start_recording(char buf[17]);
 void info(char title[16]);
 void playback(char title[16]);
 
-// #define DISABLE false
-// #define ENABLE true
 
 /**
- * keypad values: modified in RIT_IRQHandler (If they need to be modified). Can be accessed by any function 
+ * keypad values: modified in SysTickHandler(void) (If they need to be modified). Can be accessed by any function 
  */
 
 uint8_t pressed_key;    //which key has been pressed - meaningless on it's own, need to use the keymap functions with it
@@ -38,19 +37,20 @@ uint16_t key_val;   //used to get the keypad_state
 
 uint8_t memory_size = 16; //change this later when we know how many files we can have
 uint8_t line_size = 16;
-// char list_of_text[memory_size][line_size]; //pointer to the first char of the first line
 
 void (*next_func)(void); 
 
+
 /**
  * scrolling: scrolling modifies the top line of the screen (bottom line remains the same)
- * if a function requires scrolling, then scrolling_active is ENABLEd. otherwise, it is DISABLEd. (default = DISABLE)
+ * if a function requires scrolling, then scrolling_active is true. otherwise, it is false. (default = false)
  * if scrolling happens, then the function assigns the location to the first character of the text to text_begin
  * when the key '2' is pressed, the pointer value is incremented by 16
  * when the key '8' is pressed, the pointer value is decremented by 16
 */
-// bool scrolling_active 
-// char char buf[3];
+bool scrolling_active = false;
+uint8_t scrolling_index = 0;
+
 
 
 /*
@@ -58,19 +58,17 @@ void (*next_func)(void);
 **/
 int main(void) {
 
-    // scrolling_active = DISABLE;
+    // scrolling_active = false;
 
     i2c_setup_polling();
     lcd_init();
     lcd_buf_flush();
 
-    RIT_Init(LPC_RIT);
-    RIT_TimerConfig(LPC_RIT, 100);
-    NVIC_EnableIRQ(RIT_IRQn);
+    SYSTICK_InternalInit(100);
+    SYSTICK_IntCmd(ENABLE);
+    SYSTICK_Cmd(ENABLE);
 
-    serial_init();
-
-    RTC_Init(LPC_RTC);
+    serial_init();;
 
     /**
      * TODO: write a script that sends 
@@ -97,7 +95,6 @@ int main(void) {
     }
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, buf);
 
-    lcd_buf_write_string("please send day", 15, 0);
     /**
     lcd_buf_update();
     uint8_t day = 0;
@@ -144,12 +141,12 @@ int main(void) {
 
 /*
 * gives an intro screen, press any key to leave
-* scrolling is disabled
+* scrolling_active is false
 **/
 
 void intro_screen() {
-    // scrolling_active = DISABLE;
-    lcd_buf_write_string_multi("welcome,\nwelcome!", 18, 0, true);
+    // scrolling_active = false;
+    lcd_buf_write_string_multi("Press Any Key", 13, 0, true);
     while(1) {  //for now, it's a press any key, can change to wait later
         if(keypad_state) {
             next_func = &choose_mode;
@@ -162,12 +159,12 @@ void intro_screen() {
 }
 /*
 * choose between browser mode, or recording mode 
-* scrolling is DISABLED cause there are only two options, so no need for is
+* scrolling_active is false cause there are only two options, so no need for is
 **/
 
 void choose_mode() {
 
-    // scrolling_active = DISABLE;
+    // scrolling_active = false;
     lcd_buf_clear_screen();
     lcd_buf_write_string_multi("1.Browser\n2.Recording", 23, 0, true);
     char keypad_num;
@@ -183,6 +180,9 @@ void choose_mode() {
                     ;
                     next_func = &recording_intro;
                     break;
+                case 'D':
+                    ;
+                    next_func = &intro_screen;
                 default: 
                     break;
             }
@@ -192,10 +192,8 @@ void choose_mode() {
     }
     return;
 }
-
-char names[3][6] = {"name1", "name2", "name3"};
 /**
-* browser mode (not fully implemented, biut I have a fairly solid idea of what's going on), can view files, and choose to playback, or find out info.
+* browser mode (not fully implemented, but I have a fairly solid idea of what's going on), can view files, and choose to playback, or find out info.
 * A is info
 * B is playback
 * D (back) brings us back to choose_mode
@@ -204,8 +202,10 @@ char names[3][6] = {"name1", "name2", "name3"};
 void browser(void) {
 
     //list_of_text = list_of_titles
-    // scrolling_active = ENABLE;
+    scrolling_active = true;
     //have a pointer to the array that is a list of names
+
+    char list_of_text[3][16] = {"aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb", "cccccccccccccccc"};
     
     /**
     *FRESULT f_readdir (
@@ -214,18 +214,17 @@ void browser(void) {
    )
                     */
     //the info we wanna return is names
-    uint8_t index = 0;
+    scrolling_index = 0;
     lcd_buf_clear_screen();
-    lcd_buf_write_string("henlo      world", 16, 16); //replace this with the info string
-    //info char: UPPER_I_DOTFUL?
-    //playback char: CHR_ARROW_RIGHT
-    //'back' char : CHR_ARROW_LEFT
-
+    lcd_buf_write_string(list_of_text[scrolling_index], 16, 0); 
+    lcd_buf_write_string("A:| B:>     D:< ", 16, 16);
+    //add the info string
+    
     char *current_name;
 
     while(1) {
-        // current_name = list_of_text[index];
-        // lcd_buf_write_string(current_name, 16, 0);
+        current_name = list_of_text[scrolling_index];
+        lcd_buf_write_string(current_name, 16, 0);
         if(keypad_state) { 
             switch(keymap_get_ascii_character(pressed_key)) {
                     break;
@@ -241,7 +240,7 @@ void browser(void) {
                     break;
                 case 'B': //playback
                     ;
-                    playback(current_name);
+                    // playback(current_name);
                     //open the file into a buffer
                     //send that file to the audioboard
                     break;
@@ -250,27 +249,11 @@ void browser(void) {
                     next_func = &choose_mode; // worth having a previous function pointer as well? that way we can break D out of each individual function?
                     return;
                     break;
-                case '2':
-                    ;
-                    if(index<memory_size) {
-                        index++;
-                    };
-                    break;
-                case '8':
-                    ;
-                    if(index>0) {
-                        index--;
-                    };
-                    break;
                 default:
                     break;
             }
         }
     }
-    // while(keymap_get_ascii_character(pressed_key) != 'D') {
-
-    // }
-    // next_func = &choose_mode;
 }
 
 /**
@@ -278,9 +261,9 @@ void browser(void) {
 * D (back) brings us back to choose mode
 */
 void recording_intro(void) {
-    // status_code(3); // TODO: put this back
+    scrolling_active = false;
     lcd_buf_clear_screen();
-    lcd_buf_write_string_multi("recording\n", 9, 0, true);
+    lcd_buf_write_string_multi("1: gen name\n2: type name", 25, 0, true);
     char symbol = '7';
     keypad_state = false;
     while(1) {
@@ -319,6 +302,7 @@ void recording_intro(void) {
  * RTC doesn't fully work yet
 */
 void generate_name(void) {
+    scrolling_active = false;
     lcd_buf_clear_screen();
     uint32_t month = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_MONTH);
     uint32_t day = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH);
@@ -326,8 +310,9 @@ void generate_name(void) {
     uint32_t minute = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_MINUTE);
     uint32_t seconds = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_SECOND);
     char buf[17];
-    uint8_t buf_length = snprintf(buf, 16, "%02s/%02s - %02s:%02s:%02s", month, day, hour, minute, seconds); //Can change this later, for now just wanted to get RTC working
+    uint8_t buf_length = snprintf(buf, 16, "%02d/%02d - %02d:%02d:%02d", (int)month, (int)day, (int)hour, (int)minute, (int)seconds); //Can change this later, for now just wanted to get RTC working
     lcd_buf_write_string(buf, buf_length, 0);
+    lcd_buf_write_string("    B:>     D:< ", 16, 16);
     while(1) {
         if(keypad_state) {
             switch(keymap_get_ascii_character(pressed_key)) {
@@ -350,11 +335,13 @@ void generate_name(void) {
 
 }
 void type_name(void) {
+    scrolling_active = false;
     lcd_buf_clear_screen();
-    lcd_buf_write_string_multi("use the numpad\nPress any key", 28, 0, true);
+    lcd_buf_write_string_multi("Use the numpad\nPress any key", 28, 0, true);
     keypad_state = false;
     while(! keypad_state){};
     lcd_buf_clear_screen();
+    lcd_buf_write_string("    B:>     D:< ", 16, 16);
     uint8_t index = 0;
     keypad_state = false;
     char buf[17];
@@ -396,14 +383,16 @@ void type_name(void) {
             }
         }
     }
-    next_func = &start_recording;
+    start_recording(buf);
     return;
 }
 
 void start_recording(char buf[17]) {
     //TODO: record sound, save it to SD card, with name
+    scrolling_active = false;
     lcd_buf_clear_screen();
     lcd_buf_write_string("we're recording", 15, 0);
+    lcd_buf_write_string("    B:=     D:< ", 16, 16);
     lcd_buf_write_string(buf, 17, 16);
     //open a file with the name
     //create a buf
@@ -413,7 +402,8 @@ void start_recording(char buf[17]) {
     return;
 }
 
-info(char title[16]) {
+void info(char title[16]) {
+    scrolling_active = true;
     /**
      * TODO:
      * FIL *current_file
@@ -425,33 +415,39 @@ info(char title[16]) {
      * implement scrolling and back buttons
      * D returns
     */
+   return;
 }
 
-playback(char title[16]) {
-    uint16_t bufout[16]; //or wev wordlength is for i2s
-    uint32_t toread = 0;    //size of the file, should be able to get it like we do in info
-    uint32_t hasread;   //use this to display time left later
-    /**
-     * FIL *current_file
-     * TODO:
-     * fopen(*current_file, title, "r");
-     * while(hasread < toread) {
-     *  fread(*current_file, bufout, toread, &hasread);
-     *  i2s_play(bufout, speed);
-     *  do something to do with displaying time using hasread
-     * }
-     * fclose(*current_file);
-     * return;
-    */
-}
+// playback(char title[16]) {
+//     uint16_t bufout[16]; //or wev wordlength is for i2s
+//     uint32_t toread = 0;    //size of the file, should be able to get it like we do in info
+//     uint32_t hasread;   //use this to display time left later
+//     /**
+//      * FIL *current_file
+//      * TODO:
+//      * fopen(*current_file, title, "r");
+//      * while(hasread < toread) {
+//      *  fread(*current_file, bufout, toread, &hasread);
+//      *  i2s_play(bufout, speed);
+//      *  do something to do with displaying time using hasread
+//      * }
+//      * fclose(*current_file);
+//      * return;
+//     */
+// }
 
 
-void RIT_IRQHandler(void) {
-    RIT_GetIntStatus(LPC_RIT);  // clear interrupt flag
+void Systick_Handler(void) {
+    SYSTICK_ClearCounterFlag();  // clear interrupt flag
     key_val = keypad_read(); 
     lcd_buf_update();
     keypad_state = keypad_read_diff(&pressed_key, key_val);
-    status_code(keypad_state%15);
+    if(scrolling_active) {
+        if(keymap_get_ascii_character(pressed_key) == '2')
+            scrolling_index++;
+        if(keymap_get_ascii_character(pressed_key) == '8')
+            scrolling_index--;
+    }
 }
 
 

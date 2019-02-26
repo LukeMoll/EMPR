@@ -1,5 +1,5 @@
 // Serial code include file
-int read_usb_serial_none_blocking(char *buf,int length);
+int read_usb_serial_blocking(uint8_t *buf,int length);
 
 int write_usb_serial_blocking(char *buf,int length);
 
