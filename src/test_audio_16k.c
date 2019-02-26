@@ -189,7 +189,9 @@ void setup_i2s(void) {
     /* Set up frequency and bit rate*/
     I2S_FreqConfig(LPC_I2S, 16000, I2S_TX_MODE);
     I2S_SetBitRate(LPC_I2S, 0, I2S_RX_MODE);
-    I2S_SetBitRate(LPC_I2S, 7, I2S_TX_MODE); //why is it RX mode? Aren't we transmitting?
+    uint8_t bitrate =   (I2S_ConfigStruct.wordwidth ? 16 : 8) *
+                        (I2S_ConfigStruct.mono ? 1 : 2) - 1;
+    I2S_SetBitRate(LPC_I2S, bitrate, I2S_TX_MODE); //why is it RX mode? Aren't we transmitting?
     status_code(14);
 
     I2S_Start(LPC_I2S);
@@ -250,30 +252,26 @@ void SPI_transmit_mbedos(void) {
 }
 
 void AR_init_16k(void) {
-    audio_reset();
+    status_code(13);
+    audio_reset(); // expected 1e00
     audio_powerctl(
         A_PDC_DEV | 
         A_PDC_OUT |
         A_PDC_DAC
-    );
-    audio_fmt(A_DAIF_16B | A_DAIF_I2S);
-    audio_smp(A_SR_32_32, true);
+    ); // expected 0d67 */
+    audio_fmt(A_DAIF_16B | A_DAIF_I2S); // expected 0e02
+    audio_smp(A_SR_32_32, true); // expected 1058
     bool sidetone = true;
     AR_send(AR_APC, 
         (sidetone ? 0b111100000 : 0) |
         0b10000 // DAC selected, bypass disabled
-    );
-    audio_mute(false);
-    AR_send(AR_DIA, 1);
-    audio_volume(60);
+    ); // expected 09f0
+    audio_mute(false); // expected 0a00
+    AR_send(AR_DIA, 1); // expected 1201
+    audio_volume(30); // expected summat x2
 
     // bypass (false)
     AR_send(0b0000100, 0b000010010); // Expected: 0x0812
-    // mute(false);                            //Not muted
-    AR_send(0b0000101, 0); // Expected: 0x0a00
-    // activateDigitalInterface_();            //The digital part of the chip is active
-    AR_send(0b0001001, 0b000000001);
-
 }
 
 void audio_reset(void) {
@@ -288,7 +286,7 @@ void audio_volume(uint8_t vol) {
 }
 
 void audio_powerctl(uint8_t bits) {
-    AR_send(~AR_PDC, bits);
+    AR_send(AR_PDC, 0b111111111 - bits);
 }
 
 void audio_fmt(uint8_t bits) {
@@ -336,14 +334,14 @@ uint32_t triangle(uint8_t wavetick) {
 
 uint32_t sawtooth(uint8_t wavetick) {
     wavetick = wavetick & 0b01111111;
-    return wavetick << 25;
+    return wavetick ;//<< 25;
 }
 
 void I2S_transmit_loop(void) {
     while(1) {
-        uint8_t byte = (wavetick++) & 0xFF;
+        //uint8_t byte = (wavetick++) & 0xFF;
 
-        I2S_Send(LPC_I2S,byte);
+        I2S_Send(LPC_I2S,wavetick++);
         // I2S_Send(LPC_I2S,I2STXBuffer[I2SWriteLength]);
         // I2SWriteLength +=1;
         // if(I2SWriteLength == I2S_BUFFER_SIZE) { // I2STXDone = 1;
