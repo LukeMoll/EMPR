@@ -1,4 +1,4 @@
-#include "keymap.h"
+#include "keymap_none_blocking.h"
 
 
 char keypad_keys[16] = "DCBA#9630852*741";
