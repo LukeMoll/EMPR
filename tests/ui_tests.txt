@@ -1,0 +1,15 @@
+NB: yes, LM, you can change these to markdown later if you can really be bothered
+
+1. Navigate from intro screen to each page
+
+2. For each page, navigate back to the intro screen using the back 'D' button
+
+3. For the Browser page and the Info page, scroll up using '2', and down using '8'
+
+4. For the Generate_Name page, succesfully generate a formatted name with the correct timestamp (allowing for 2 minutes of error). This must be viewable when the SD card is in the PC
+
+5. For the Type_Name page, succesfully create a file called 122223232444    , as well as one called 11112222233334444. These must be viewable from the PC
+
+6. For the playback page, successfully play, pause, and resume a file.
+
+
