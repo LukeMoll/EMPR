@@ -1,7 +1,7 @@
 // #include "expander.h"
 // #include <stdio.h>
 
-#include "keypad.h"
+#include "keypad_non_blocking.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>

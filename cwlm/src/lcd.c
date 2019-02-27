@@ -92,7 +92,7 @@ uint8_t lcd_ascii_to_byte(char ascii) {
             case '\0':return CHR_BLANK_UNKNOWN;
             case '>' : return CHR_ARROW_RIGHT;
             case '<' : return CHR_ARROW_LEFT;
-            case '|' : return CHR_UPPER_I_DOTFUL;
+            case '$' : return CHR_UPPER_I_DOTFUL;
             default: 
             // return CHR_BLANK_UNKNOWN;
             return CHR_INVERTED_QUESTION_MARK;
