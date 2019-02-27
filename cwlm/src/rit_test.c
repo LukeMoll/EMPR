@@ -25,7 +25,7 @@ int main(void) {
 
     RIT_Init(LPC_RIT);
 
-    RIT_TimerConfig(LPC_RIT, 1000);
+    RIT_TimerConfig(LPC_RIT, 10);
 
     NVIC_EnableIRQ(RIT_IRQn);
     while(1){};
