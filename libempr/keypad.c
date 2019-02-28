@@ -64,3 +64,4 @@ char keypad_wait_for_key(void) {
 	prev_key = key;
 	return key;
 }
+

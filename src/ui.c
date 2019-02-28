@@ -10,10 +10,9 @@
 #include <libempr/lcd.h>
 #include <libempr/lcd_buf.h>
 #include <libempr/expander.h>
-#include <libempr/keypad_none_blocking.h> //need to modify everything using this
-#include <libempr/keymap_none_blocking.h>
 #include <libempr/status.h>
 #include <libempr/serial.h>
+#include <libempr/keypad.h>
 
 void SysTick_Handler(void);
 void intro_screen();
@@ -30,10 +29,7 @@ void playback(char title[16]);
 /**
  * keypad values: modified in SysTickHandler(void) (If they need to be modified). Can be accessed by any function 
  */
-
-uint8_t pressed_key;    //which key has been pressed - meaningless on it's own, need to use the keymap functions with it
-uint16_t keypad_state = 0; //has a key been pressed on the keypad?
-uint16_t key_val;   //used to get the keypad_state
+char pressed_key;
 
 uint8_t memory_size = 16; //change this later when we know how many files we can have
 uint8_t line_size = 16;
@@ -58,7 +54,7 @@ int8_t scrolling_index = 0;
 **/
 int main(void) {
 
-    // scrolling_active = false;
+    scrolling_active = false;
 
     i2c_setup_polling();
     lcd_init();
@@ -68,7 +64,9 @@ int main(void) {
     uint8_t buf[5] = {0, 0, 0, 0, 0};
     uint8_t month = 0;
 
-    lcd_buf_write_string("pls run\n./send_dates.py", 23, 0);
+    //prompt the user to run the python script
+
+    lcd_buf_write_string_multi("pls run\n./send_dates.py", 23, 0, true);
     lcd_buf_update();
 
     month = read_usb_serial_blocking(buf, 5);
@@ -83,24 +81,11 @@ int main(void) {
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, buf[4]);
     RTC_Cmd(LPC_RTC, ENABLE);
 
-
-
-    /**
-     * TODO: write a script that sends 
-     * % date +"%m" > /dev/ttyACM0
-     * % date +"%d" > /dev/ttyACM0
-     * %char buf[3];
-     * % date +"%M" > /dev/ttyACM0
-     * % date +"%S" > /dev/ttyACM0
-     * currently only works if you enter things via screen (unsure why)
-    */
-
     SYSTICK_InternalInit(100);
     SYSTICK_IntCmd(ENABLE);
     SYSTICK_Cmd(ENABLE);
 
     intro_screen();
-    status_code(16);
 
     while(1) {
         //makes sure that the next function happens
@@ -117,15 +102,13 @@ int main(void) {
 
 void intro_screen() {
     // scrolling_active = false;
-    status_code(1);
+    lcd_buf_clear_screen();
     lcd_buf_write_string_multi("Press Any Key", 13, 0, true);
-    status_code(2);
     while(1) {  //for now, it's a press any key, can change to wait later
-        if(keypad_state) {
-            status_code(3);
+        if(pressed_key) {
             next_func = &choose_mode;
             lcd_buf_clear_screen();
-            keypad_state = 0;
+            pressed_key = 0;
             return;
             
         }
@@ -144,8 +127,9 @@ void choose_mode() {
     lcd_buf_write_string_multi("1.Browser\n2.Recording", 23, 0, true);
     char keypad_num;
     while(1){
-        if(keypad_state) {
-            keypad_num = keymap_get_ascii_character(pressed_key);
+        if(pressed_key) {
+            keypad_num = pressed_key;
+            pressed_key = 0;
             switch(keypad_num) {
                 case '1':
                     ;
@@ -201,8 +185,9 @@ void browser(void) {
     while(1) {
         current_name = list_of_text[scrolling_index%3];
         lcd_buf_write_string(current_name, 16, 0);
-        if(keypad_state) { 
-            keypad_num = keymap_get_ascii_character(pressed_key);
+        if(pressed_key) { 
+            keypad_num = pressed_key;
+            pressed_key = 0;
             switch(keypad_num) {
                     break;
                 case 'A': //info
@@ -243,10 +228,11 @@ void recording_intro(void) {
     lcd_buf_clear_screen();
     lcd_buf_write_string_multi("1: gen name\n2: type name", 25, 0, true);
     char symbol = '7';
-    keypad_state = false;
+    pressed_key = 0;
     while(1) {
-        if(keypad_state) {
-            symbol = keymap_get_ascii_character(pressed_key);
+        if(pressed_key) {
+            symbol = pressed_key;
+            pressed_key = 0;
             switch(symbol) {
                 case '1' :
                     ;
@@ -279,6 +265,7 @@ void recording_intro(void) {
  * RTC doesn't fully work yet
 */
 void generate_name(void) {
+    char keypad_num;
     lcd_buf_clear_screen();
     lcd_buf_write_string("test", 4, 0);
     lcd_buf_update();
@@ -287,27 +274,30 @@ void generate_name(void) {
     uint32_t hour = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_HOUR);
     uint32_t minute = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_MINUTE);
     uint32_t seconds = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_SECOND);
-    status_code(minute); //it is definitely sending the right thing
     char buff[17];
     snprintf(buff, 16, "%02u/%02u - %02u:%02u:%02u", month, day, hour, minute, seconds); //Can change this later, for now just wanted to get RTC working
-    lcd_buf_write_string(buff, 16, 16);
+    lcd_buf_write_string(buff, 16, 0);
     lcd_buf_update();
     lcd_buf_write_string("    B:>     D:< ", 16, 16);
+    pressed_key = 0;
     while(1) {
-        if(keypad_state) {
-            switch(keymap_get_ascii_character(pressed_key)) {
+        if(pressed_key) {
+            keypad_num = pressed_key;
+            pressed_key = 0;
+            switch(keypad_num) {
                 case 'A':
                     ;
                     start_recording(buff);
+                    return;
                     break;
                 case 'D' :
                     ;
                     next_func = &recording_intro;
+                    return;
                     break;
                 default:
                     break;
             }
-            return;
 
         }
 
@@ -323,18 +313,18 @@ void type_name(void) {
     scrolling_active = false;
     lcd_buf_clear_screen();
     lcd_buf_write_string_multi("Use the numpad\nPress any key", 28, 0, true);
-    keypad_state = false;
-    while(! keypad_state){};
+    pressed_key = 0;
+    while(! pressed_key){};
     lcd_buf_clear_screen();
     lcd_buf_write_string("    B:>     D:< ", 16, 16);
     uint8_t index = 0;
-    keypad_state = false;
+    pressed_key = 0;
     char buf[17];
     sprintf(buf, "                ");
     while(index < 16) {
-        if(keypad_state) {
-            keypad_state = false;
-            char chara = keymap_get_ascii_character(pressed_key);
+        if(pressed_key) {
+            char chara = pressed_key;
+            pressed_key = 0;
             switch(chara) {
                 case 'A':
                     ;
@@ -407,9 +397,12 @@ void info(char title[16]) {
     lcd_buf_clear_screen();
     char *current_string;
     lcd_buf_write_string("D:< ", 4, 27);
+    pressed_key = 0;
     while(1) {
-        if(keypad_state) {
-            switch(keymap_get_ascii_character(pressed_key)) {
+        if(pressed_key) {
+            char key = pressed_key;
+            pressed_key = 0;
+            switch(key) {
                 case 'D':
                     ;
                     next_func = &browser;
@@ -467,13 +460,13 @@ void info(char title[16]) {
 */
 void SysTick_Handler(void) {
     SYSTICK_ClearCounterFlag();  // clear interrupt flag
-    key_val = keypad_read(); 
     lcd_buf_update();
-    keypad_state = keypad_read_diff(&pressed_key, key_val);
+    pressed_key = keypad_get_key();
     if(scrolling_active) {
         /*this currently uses the keypad keys 2 and 8. It should, however, be trivial to sitch it to something else*/
-        if(keypad_state) {
-           switch(keymap_get_ascii_character(pressed_key)) {
+        if(pressed_key) {
+            char scroll = pressed_key;
+           switch(scroll) {
                 case '2':
                     ;
                     scrolling_index++; //this shouldn't work why the hell does it work
