@@ -29,7 +29,7 @@ void playback(char title[16]);
 /**
  * keypad values: modified in SysTickHandler(void) (If they need to be modified). Can be accessed by any function 
  */
-char pressed_key;
+char pressed_key = 0;
 
 uint8_t memory_size = 16; //change this later when we know how many files we can have
 uint8_t line_size = 16;
@@ -134,18 +134,21 @@ void choose_mode() {
                 case '1':
                     ;
                     next_func = &browser;
+                    return;
                     break;
                 case '2':
                     ;
                     next_func = &recording_intro;
+                    return;
                     break;
                 case 'D':
                     ;
                     next_func = &intro_screen;
+                    return;
+                    break;
                 default: 
                     break;
             }
-            return;
             
         }
     }
@@ -176,7 +179,9 @@ void browser(void) {
     scrolling_index = 0;
     lcd_buf_clear_screen();
     lcd_buf_write_string(list_of_text[scrolling_index], 16, 0); 
-    lcd_buf_write_string("A:$ B:>     D:< ", 16, 16);
+    lcd_buf_write_string("A:$ B:>      D:< ", 16, 16);
+    // lcd_buf_write_string("D:< ", 4, 27);
+    lcd_buf_update();
     //add the info string
     
     char *current_name;
@@ -326,7 +331,7 @@ void type_name(void) {
             char chara = pressed_key;
             pressed_key = 0;
             switch(chara) {
-                case 'A':
+                case 'B':
                     ;
                     start_recording(buf); //calls it rather than function pointer, because it needs an argument, and then it can do it's thing and return
                     return;
@@ -336,7 +341,7 @@ void type_name(void) {
                     next_func = &recording_intro;
                     return;
                     break;
-                case 'B':
+                case 'A':
                 ;
                 break;
                     case 'C':
@@ -354,6 +359,7 @@ void type_name(void) {
                     lcd_buf_write_string(buf, 17, 0);
                     //I hate myself that this in any way works
                     index++;
+                    pressed_key = 0;
                     break;
             }
         }
@@ -373,9 +379,9 @@ void start_recording(char buf[17]) {
     //TODO: record sound, save it to SD card, with name
     scrolling_active = false;
     lcd_buf_clear_screen();
-    lcd_buf_write_string("we're recording", 15, 0);
-    lcd_buf_write_string("    B:=     D:< ", 16, 16);
-    lcd_buf_write_string(buf, 17, 16);
+    lcd_buf_write_string(buf, 17, 0);
+    lcd_buf_write_string("B:= ", 4, 20);
+    lcd_buf_write_string("D:< ", 4, 27);
     //open a file with the name
     //create a buf
     //read from the audioboard into the buf
@@ -396,7 +402,7 @@ void info(char title[16]) {
     char info_list[3][16] = {"dddddddddddddddd", "eeeeeeeeeeeeeeee", "ffffffffffffffff"}; /*change this later when I figure out how to open files*/
     lcd_buf_clear_screen();
     char *current_string;
-    lcd_buf_write_string("D:< ", 4, 27);
+    lcd_buf_write_string("            D:< ", 16, 16);
     pressed_key = 0;
     while(1) {
         if(pressed_key) {
@@ -406,6 +412,7 @@ void info(char title[16]) {
                 case 'D':
                     ;
                     next_func = &browser;
+                    //this for some reason breaks, something to do with lcd_buf
                     return;
             }
         }
@@ -461,7 +468,16 @@ void info(char title[16]) {
 void SysTick_Handler(void) {
     SYSTICK_ClearCounterFlag();  // clear interrupt flag
     lcd_buf_update();
+    static char previous_key = 0;
     pressed_key = keypad_get_key();
+    if(previous_key == pressed_key) {
+        previous_key = pressed_key;
+        pressed_key = 0;
+    }
+    else {
+        previous_key = pressed_key;
+    }
+    
     if(scrolling_active) {
         /*this currently uses the keypad keys 2 and 8. It should, however, be trivial to sitch it to something else*/
         if(pressed_key) {
@@ -470,9 +486,11 @@ void SysTick_Handler(void) {
                 case '2':
                     ;
                     scrolling_index++; //this shouldn't work why the hell does it work
+                    break;
                 case '8':
                     ;
                     scrolling_index++;
+                    break;
                 default: 
                     break;
            }
