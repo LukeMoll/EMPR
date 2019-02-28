@@ -37,6 +37,14 @@ void spi_init(void) {
 }
 
 void spi_cs_init(uint8_t portnum, uint8_t pinnum) {
+	PINSEL_CFG_Type pin_cfg;
+	pin_cfg.Funcnum = 0;
+	pin_cfg.OpenDrain = PINSEL_PINMODE_NORMAL;
+	pin_cfg.Pinmode = PINSEL_PINMODE_PULLUP;
+	pin_cfg.Portnum = portnum;
+	pin_cfg.Pinnum = pinnum;
+	PINSEL_ConfigPin(&pin_cfg);
+
 	GPIO_SetDir(portnum, 1 << pinnum, 1);
 	GPIO_SetValue(portnum, 1 << pinnum);
 }
