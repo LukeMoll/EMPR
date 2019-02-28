@@ -14,7 +14,7 @@ static const char KEYS[4][4] = {
 };
 
 /**
- * Returns currently pressed key.
+ * Returns currently pressed key. If no key is pressed then returns '\0'.
  */
 char keypad_get_key(void) {
 	uint8_t buf, col, row;
@@ -49,17 +49,19 @@ char keypad_get_key(void) {
 	return KEYS[row - 1][col - 1];
 }
 
+/**
+ * Waits until a key is pressed and then returns it. On subsequent calls, waits
+ * until the previous key is no longer pressed and then waits for another key to
+ * be pressed.
+ */
 char keypad_wait_for_key(void) {
-	static bool key_pressed = false;
-
+	static char prev_key = 0;
 	char key = 0;
-	while (!key) {
-		if (!(key = keypad_get_key()))
-			key_pressed = false;
-		else if (!key_pressed)
-			key_pressed = true;
-	}
+	while (prev_key == key)
+		key = keypad_get_key();
 
+	while (!(key = keypad_get_key())) {}
+	prev_key = key;
 	return key;
 }
 

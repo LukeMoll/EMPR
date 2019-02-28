@@ -10,10 +10,9 @@
 #include <libempr/lcd.h>
 #include <libempr/lcd_buf.h>
 #include <libempr/expander.h>
-#include <libempr/keypad_none_blocking.h> 
-#include <libempr/keymap_none_blocking.h>
 #include <libempr/status.h>
 #include <libempr/serial.h>
+#include <libempr/keypad.h>
 
 void SysTick_Handler(void);
 void intro_screen();
@@ -30,10 +29,7 @@ void playback(char title[16]);
 /**
  * keypad values: modified in SysTickHandler(void) (If they need to be modified). Can be accessed by any function 
  */
-
-uint8_t pressed_key;    //which key has been pressed - meaningless on it's own, need to use the keymap functions with it
-uint16_t keypad_state = 0; //has a key been pressed on the keypad?
-uint16_t key_val;   //used to get the keypad_state
+char pressed_key;
 
 uint8_t memory_size = 16; //change this later when we know how many files we can have
 uint8_t line_size = 16;
@@ -106,12 +102,13 @@ int main(void) {
 
 void intro_screen() {
     // scrolling_active = false;
+    lcd_buf_clear_screen();
     lcd_buf_write_string_multi("Press Any Key", 13, 0, true);
     while(1) {  //for now, it's a press any key, can change to wait later
-        if(keypad_state) {
+        if(pressed_key) {
             next_func = &choose_mode;
             lcd_buf_clear_screen();
-            keypad_state = 0;
+            pressed_key = 0;
             return;
             
         }
@@ -130,8 +127,9 @@ void choose_mode() {
     lcd_buf_write_string_multi("1.Browser\n2.Recording", 23, 0, true);
     char keypad_num;
     while(1){
-        if(keypad_state) {
-            keypad_num = keymap_get_ascii_character(pressed_key);
+        if(pressed_key) {
+            keypad_num = pressed_key;
+            pressed_key = 0;
             switch(keypad_num) {
                 case '1':
                     ;
@@ -187,8 +185,9 @@ void browser(void) {
     while(1) {
         current_name = list_of_text[scrolling_index%3];
         lcd_buf_write_string(current_name, 16, 0);
-        if(keypad_state) { 
-            keypad_num = keymap_get_ascii_character(pressed_key);
+        if(pressed_key) { 
+            keypad_num = pressed_key;
+            pressed_key = 0;
             switch(keypad_num) {
                     break;
                 case 'A': //info
@@ -229,10 +228,11 @@ void recording_intro(void) {
     lcd_buf_clear_screen();
     lcd_buf_write_string_multi("1: gen name\n2: type name", 25, 0, true);
     char symbol = '7';
-    keypad_state = false;
+    pressed_key = 0;
     while(1) {
-        if(keypad_state) {
-            symbol = keymap_get_ascii_character(pressed_key);
+        if(pressed_key) {
+            symbol = pressed_key;
+            pressed_key = 0;
             switch(symbol) {
                 case '1' :
                     ;
@@ -279,9 +279,11 @@ void generate_name(void) {
     lcd_buf_write_string(buff, 16, 0);
     lcd_buf_update();
     lcd_buf_write_string("    B:>     D:< ", 16, 16);
+    pressed_key = 0;
     while(1) {
-        if(keypad_state) {
-            keypad_num = keymap_get_ascii_character(pressed_key);
+        if(pressed_key) {
+            keypad_num = pressed_key;
+            pressed_key = 0;
             switch(keypad_num) {
                 case 'A':
                     ;
@@ -311,18 +313,18 @@ void type_name(void) {
     scrolling_active = false;
     lcd_buf_clear_screen();
     lcd_buf_write_string_multi("Use the numpad\nPress any key", 28, 0, true);
-    keypad_state = false;
-    while(! keypad_state){};
+    pressed_key = 0;
+    while(! pressed_key){};
     lcd_buf_clear_screen();
     lcd_buf_write_string("    B:>     D:< ", 16, 16);
     uint8_t index = 0;
-    keypad_state = false;
+    pressed_key = 0;
     char buf[17];
     sprintf(buf, "                ");
     while(index < 16) {
-        if(keypad_state) {
-            keypad_state = false;
-            char chara = keymap_get_ascii_character(pressed_key);
+        if(pressed_key) {
+            char chara = pressed_key;
+            pressed_key = 0;
             switch(chara) {
                 case 'A':
                     ;
@@ -395,9 +397,12 @@ void info(char title[16]) {
     lcd_buf_clear_screen();
     char *current_string;
     lcd_buf_write_string("D:< ", 4, 27);
+    pressed_key = 0;
     while(1) {
-        if(keypad_state) {
-            switch(keymap_get_ascii_character(pressed_key)) {
+        if(pressed_key) {
+            char key = pressed_key;
+            pressed_key = 0;
+            switch(key) {
                 case 'D':
                     ;
                     next_func = &browser;
@@ -455,13 +460,13 @@ void info(char title[16]) {
 */
 void SysTick_Handler(void) {
     SYSTICK_ClearCounterFlag();  // clear interrupt flag
-    key_val = keypad_read(); 
     lcd_buf_update();
-    keypad_state = keypad_read_diff(&pressed_key, key_val);
+    pressed_key = keypad_get_key();
     if(scrolling_active) {
         /*this currently uses the keypad keys 2 and 8. It should, however, be trivial to sitch it to something else*/
-        if(keypad_state) {
-           switch(keymap_get_ascii_character(pressed_key)) {
+        if(pressed_key) {
+            char scroll = pressed_key;
+           switch(scroll) {
                 case '2':
                     ;
                     scrolling_index++; //this shouldn't work why the hell does it work
