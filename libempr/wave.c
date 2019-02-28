@@ -18,6 +18,19 @@ uint32_t wave_triangle32(uint8_t Tres, uint64_t tick) {
     }
 }
 
+uint16_t wave_t8triangle16(uint8_t tick) {
+    if(tick < 64) {
+        // [0,2^6] -> [2^15, 2^16]
+        return (tick << 9) + (1 << 15);
+    }
+    else if(tick < 192) {
+        return (1 << 16) - (tick<<9);
+    }
+    else {
+        return (tick << 9);
+    }
+}
+
 uint16_t wave_t8saw16(uint8_t tick) {
     return tick << 8;
 }

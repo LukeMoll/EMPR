@@ -4,13 +4,13 @@
 #include <lpc17xx_dac.h>
 #include <lpc_types.h>
 
-void dac_init(uint8_t port, uint8_t pin, uint8_t funcnum) {
+void dac_init() {
     PINSEL_CFG_Type PinCfg;
-    PinCfg.Funcnum = funcnum;
+    PinCfg.Funcnum = DAC_FUNCNUM;
     PinCfg.OpenDrain = PINSEL_PINMODE_NORMAL; // need to check these
     PinCfg.Pinmode = PINSEL_PINMODE_TRISTATE; // seems to work fine tho
-    PinCfg.Portnum = port;
-    PinCfg.Pinnum =  pin;
+    PinCfg.Portnum = DAC_PORT;
+    PinCfg.Pinnum =  DAC_PIN;
 
     PINSEL_ConfigPin(&PinCfg);
     DAC_Init(LPC_DAC);

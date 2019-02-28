@@ -1,35 +1,38 @@
-#include <libempr/dac.h>
-#include <libempr/wave.h>
-#include <lpc17xx_dac.h>
 #include <lpc17xx_rit.h>
 #include <lpc17xx_clkpwr.h>
+#include <lpc17xx_dac.h>
+#include "dac.h"
+#include <stdlib.h>
 
-#include <libempr/serial.h>
+#include "audioplayback.h"
 
-#define DAC_PORT 0
-#define DAC_PIN 26
-#define DAC_FUNCNUM 2
+uint8_t *apb_buf, *apb_head, *apb_end;
+uint8_t scale = 0;
 
-
+// private
 uint32_t RIT_TimerConfig_us(LPC_RIT_TypeDef *RITx, uint32_t microseconds);
-void advance();
 
-int main(void) {
-    serial_init();
+void playback_init(uint8_t *buf, size_t len) {
+    apb_buf = buf;
+    apb_head = apb_buf;
+    apb_end = apb_buf + len;
 
     dac_init();
 
     RIT_Init(LPC_RIT);
-    RIT_TimerConfig_us(LPC_RIT, 15);
-    NVIC_EnableIRQ(RIT_IRQn);
-    while(1) {};
-    return 0;
+    RIT_TimerConfig_us(LPC_RIT, 250); // 1000us = 1kHz
+}
 
+void playback_play() {
+    NVIC_EnableIRQ(RIT_IRQn);
+}
+
+void playback_pause() {
+    NVIC_DisableIRQ(RIT_IRQn);
 }
 
 uint32_t RIT_TimerConfig_us(LPC_RIT_TypeDef *RITx, uint32_t microseconds) {
     	uint32_t clock_rate, cmp_value;
-    	// CHECK_PARAM(PARAM_RITx(RITx));
 
 		// remove divider
 		CLKPWR_SetPCLKDiv(CLKPWR_PCLKSEL_RIT, 1);
@@ -42,7 +45,7 @@ uint32_t RIT_TimerConfig_us(LPC_RIT_TypeDef *RITx, uint32_t microseconds) {
          * COMPVAL = (RIT_PCLK * time_interval)/1000
          * (with time_interval unit is millisecond)
          */
-        cmp_value = (clock_rate /1000000) * microseconds;
+        cmp_value = (clock_rate / 1000000) * microseconds;
         RITx->RICOMPVAL = cmp_value;
 
         /* Set timer enable clear bit to clear timer to 0 whenever
@@ -52,25 +55,18 @@ uint32_t RIT_TimerConfig_us(LPC_RIT_TypeDef *RITx, uint32_t microseconds) {
 		return cmp_value;
 }
 
-uint8_t tick = 0;
-void advance() {
-    // uint32_t newVal = wave_triangle32(WTICK8, tick);
-
-    uint32_t newVal = wave_t8triangle16(tick) 
-        // + wave_t8saw16(tick * 3/2) / 4
-        // + wave_t8saw16(tick * 9)/9
-        // + wave_t8saw16(tick * 27)/27
-        ;
-    DAC_UpdateValue(LPC_DAC, newVal >> 10);
-    tick ++;
-    
-    // if((tick % 15) == 0) {
-        // serial_printf("%u:\t%u\t%03x\r\n", tick, newVal, newVal >> 20);
-    // }
-}
-
 void RIT_IRQHandler(void) {
 	RIT_GetIntStatus(LPC_RIT);
 
-    advance();
+    if(apb_head != apb_end && NULL != apb_head) {
+        DAC_UpdateValue(LPC_DAC, (*apb_head) << scale);
+        apb_head++;
+    }
+    else {
+        playback_pause();
+        free(apb_buf);
+        apb_buf = NULL;
+        apb_head = NULL;
+        apb_end = NULL;
+    }
 }
