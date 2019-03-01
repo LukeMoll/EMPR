@@ -12,4 +12,22 @@ NB: yes, LM, you can change these to markdown later if you can really be bothere
 
 6. For the playback page, successfully play, pause, and resume a file.
 
+----------
 
+Debugging performed on 28/02/2019 by JP
+
+Initial plan:
+
+Try every button on every screen of the GUI toAdd see if any break it, therefore everything possible should be covered eventually.
+
+Errors found (or general nitpicking):
+
+1. The screen flashes when you press a button that has no effect on the page; this was found to be due to the code reloading the data ont othe screen after every button press. Fixed by changing the code to only have an impact when a button which has an effect and causes the next screen to be loaded is selected.
+
+2. Holding down a button which has an effect (mainly 1 or D) causes the GUI to quickly flit over screens, often causing you to miss a screen asking for input so you don't know what you've pressed. Caused by the interrupt in the code happening so often that pressing a button takes more time than a single interrupt. Fixed by implementing a variable in the interrupt function which remembered the last button pressed so that when you press the button, it only registers it once as you press it and remove your finger. Since the interrupt happens very often, as soon as you remove your finger, it registers that nothing is being pressed and so you can then quickly press that button again if it happens to be the next one you need to press and it will advance and not get stuck on the previous page due to the variable remembering the previous press blocking it.
+
+3. Going back from the info screen to the browser screen seemed to do nothing at first. Upon further inspection, it was found to be loading the top line of the LCD to a buffer, but not the second (the top lines of both screens happens to be similar, 10 as vs 10 ds). Was unable to figure out the source of the error and therefore have yet to correct it.
+
+4. Going to the type_name page seemed to double click, ever after implementing prevention against double clicking. Real cause later found to be a missuse of the registered button press variable, not setting it to 0 before the function to generate a name meant that it quickly ran over the loop to generate the name with the last button pressed and then, since its size hit 16, began to record under that name. Fixed by setting the pressed button to 0 (the boolean value, not the integer) before every run of that function, to prevent it skipping over it and giving you a file consisting of 16 of the same character.
+
+5. Odd looking text on the recording audio page. Incorrect usage of the function to generate a buffer to pass to the lcd for the screen was used so that one of the lines wasn't updated to say the right thing. Easily fixed by correctly using the function. 
