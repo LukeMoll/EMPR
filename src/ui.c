@@ -16,7 +16,7 @@
 #include <libempr/audioplayback.h>
 
 /*disables all the rtc stuff to make testing other functionalities easier*/
-#define RTC_ENABLE true
+#define RTC_ENABLE false
 #define GOT_SD_WORKING false
 
 void SysTick_Handler(void);
@@ -29,6 +29,7 @@ void type_name(void);
 void start_recording(char buf[17]);
 void info(char title[16]);
 void playback(char title[16]);
+void two_bot();
 
 
 /**
@@ -40,7 +41,7 @@ uint8_t memory_size = 16; //change this later when we know how many files we can
 uint8_t line_size = 16;
 
 void (*next_func)(void); 
-
+void (*previous_func)(void);
 
 /**
  * scrolling: scrolling modifies the top line of the screen (bottom line remains the same)
@@ -52,7 +53,7 @@ void (*next_func)(void);
 bool scrolling_active = false;
 int8_t scrolling_index = 0;
 
-
+uint8_t twotal = 0;
 
 /*
 *configure everything, start the loop
@@ -154,6 +155,12 @@ void choose_mode() {
                     next_func = &intro_screen;
                     return;
                     break;
+                case '#':
+                    ;
+                    next_func = two_bot;
+                    previous_func = &choose_mode;
+                    return;
+                    break;
                 default: 
                     break;
             }
@@ -219,6 +226,13 @@ void browser(void) {
                     next_func = &choose_mode; // worth having a previous function pointer as well? that way we can break D out of each individual function?
                     return;
                     break;
+                case '#':
+                    ;
+                    previous_func = &browser;
+                    next_func = &two_bot;
+                    return;
+                    break;
+
                 default:
                     break;
             }
@@ -258,6 +272,13 @@ void recording_intro(void) {
                     ;
                     next_func = &choose_mode;
                     break;
+                case '#':
+                    ;
+                    previous_func = &recording_intro;
+                    next_func = two_bot;
+                    return;
+                    break;
+
                 default:
                     break;
             }
@@ -303,6 +324,13 @@ void generate_name(void) {
                     next_func = &recording_intro;
                     return;
                     break;
+                case '#':
+                    ;
+                    previous_func = &generate_name;
+                    next_func = &two_bot;
+                    return;
+                    break;
+
                 default:
                     break;
             }
@@ -322,6 +350,12 @@ void generate_name(void) {
                 case 'D' :
                     ;
                     next_func = &recording_intro;
+                    return;
+                    break;
+                case '#':
+                    ;
+                    previous_func = &generate_name;
+                    next_func = &two_bot;
                     return;
                     break;
                 default:
@@ -372,7 +406,7 @@ void type_name(void) {
                     case 'C':
                     ;
                     break;
-                case '#': 
+                case '#':
                     ;
                     break;
                 case '*':
@@ -424,16 +458,15 @@ void info(char title[16]) {
     //TODO: test, once SD is working
     scrolling_active = true;
     scrolling_index = 0;
-    FIL *current_file;
 #if GOT_SD_WORKING
+    FIL *current_file;
     FRESULT our_file = f_open(current_file, title, "r");
     FILINFO info;
     f_readdir(/*pointer to open directory object*/, info);
-    char info_list [3][16] = {
-        sprintf("size :  %08u", info.fsize),
-        sprintf("date :  %08u", info.fdate),
-        sprintf("time :  %08u", info.ftime),
-    }
+    char info_list [3][16];
+    sprintf(info_list[0], "size :  %08u", info.fsize),
+    sprintf(info_list[1], "date :  %08u", info.fdate),
+    sprintf(info_list[2], "time :  %08u", info.ftime),
 #else
     char info_list[3][16] = {"dddddddddddddddd", "eeeeeeeeeeeeeeee", "ffffffffffffffff"}; /*change this later when I figure out how to open files*/
 #endif
@@ -474,7 +507,7 @@ void playback(char title[16]) {
     
     FIL *current_file
     TODO:
-    fopen(*current_file, title, "r");
+    fopen(*current_file, title, "r"); //not actually title, it needs to have the .wav extension
     pressed_key = 0;
     playback_init(bufout, toread);
     fread(*current_file, bufout, toread, &hasread);
@@ -511,6 +544,22 @@ void playback(char title[16]) {
 
 }
 #endif
+
+void two_bot() {
+    twotal++;
+    char buf[32];
+    sprintf(buf, "oh no! You've been #'d! total:%02u", twotal);
+    lcd_buf_write_string_multi(buf, 32, 0, true);
+    lcd_buf_update();
+    pressed_key = 0;
+    while(1) {
+        if(pressed_key=='D') {
+            lcd_buf_clear_screen();
+            next_func = previous_func;
+            return;
+        }
+    }
+}
 
 /**
  * Systick interupt handler
