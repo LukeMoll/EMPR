@@ -170,20 +170,15 @@ void choose_mode() {
 * scrolling_active is true
 */
 void browser(void) {
-
+#if GOT_SD_WORKING
+    //TODO:
+    //get a list of titles (can't figure out how to do it using fatfs, might be worth keeping them as a volatile variable? idk)
     //list_of_text = list_of_titles
+#else
+    char list_of_text[3][16] = {"aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb", "cccccccccccccccc"};
+#endif
     scrolling_active = true;
     //have a pointer to the array that is a list of names
-
-    char list_of_text[3][16] = {"aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb", "cccccccccccccccc"};
-    
-    /**
-    *FRESULT f_readdir (
-	DIR* dp,			 Pointer to the open directory object 
-	FILINFO* fno		 Pointer to file information to return 
-   )
-                    */
-    //the info we wanna return is names
     scrolling_index = 0;
     lcd_buf_clear_screen();
     lcd_buf_write_string(list_of_text[scrolling_index], 16, 0); 
@@ -387,7 +382,6 @@ void type_name(void) {
                     ;
                     buf[index] = chara;
                     lcd_buf_write_string(buf, 17, 0);
-                    //I hate myself that this in any way works
                     index++;
                     pressed_key = 0;
                     break;
@@ -427,9 +421,22 @@ void start_recording(char buf[17]) {
 */
 
 void info(char title[16]) {
+    //TODO: test, once SD is working
     scrolling_active = true;
     scrolling_index = 0;
+    FIL *current_file;
+#if GOT_SD_WORKING
+    FRESULT our_file = f_open(current_file, title, "r");
+    FILINFO info;
+    f_readdir(/*pointer to open directory object*/, info);
+    char info_list [3][16] = {
+        sprintf("size :  %08u", info.fsize),
+        sprintf("date :  %08u", info.fdate),
+        sprintf("time :  %08u", info.ftime),
+    }
+#else
     char info_list[3][16] = {"dddddddddddddddd", "eeeeeeeeeeeeeeee", "ffffffffffffffff"}; /*change this later when I figure out how to open files*/
+#endif
     lcd_buf_clear_screen();
     char *current_string;
     lcd_buf_write_string("            D:< ", 16, 16);
@@ -449,17 +456,6 @@ void info(char title[16]) {
         current_string = info_list[scrolling_index%3];
         lcd_buf_write_string(current_string, 16, 0);
     }
-    /**
-     * TODO:
-     * FIL *current_file
-     * fopen(*current_file, title, "r")
-     * have an array of types of info
-     * iterate through that array and use 
-     * FRESULT f_readdir() with the type of info and then read the line that has to do with whatever we want.
-     * list_of_text = info_text
-     * implement scrolling and back buttons
-     * D returns
-    */
    return;
 }
 
@@ -470,10 +466,11 @@ void info(char title[16]) {
 */
 #if GOT_SD_WORKING
 void playback(char title[16]) {
+    //TODO: test once SD is working
     scrolling_active = false;
     uint16_t bufout[16]; //or wev wordlength is for i2s
-    uint32_t toread = 0;    //size of the file, should be able to get it like we do in info
-    uint32_t hasread;   //use this to display time left later
+    uint32_t toread = f_size(bufout);    //size of the file, should be able to get it like we do in info
+    uint32_t hasread = 0;   //use this to display time left later
     
     FIL *current_file
     TODO:
@@ -486,6 +483,7 @@ void playback(char title[16]) {
     while(hasread < toread) {
         if(!paused) 
             fread(*current_file, bufout, toread, &hasread);
+            has_read += 16;
         if(pressed_key) {
             keypad_num = pressed_key;
             switch(keypad_num) {
