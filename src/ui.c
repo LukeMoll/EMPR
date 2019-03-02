@@ -13,6 +13,11 @@
 #include <libempr/status.h>
 #include <libempr/serial.h>
 #include <libempr/keypad.h>
+#include <libempr/audioplayback.h>
+
+/*disables all the rtc stuff to make testing other functionalities easier*/
+#define RTC_ENABLE true
+#define GOT_SD_WORKING false
 
 void SysTick_Handler(void);
 void intro_screen();
@@ -61,6 +66,8 @@ int main(void) {
     lcd_buf_flush();
 
     serial_init();
+
+#if RTC_ENABLE
     uint8_t buf[5] = {0, 0, 0, 0, 0};
     uint8_t month = 0;
 
@@ -80,6 +87,7 @@ int main(void) {
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MINUTE, buf[3]);
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_SECOND, buf[4]);
     RTC_Cmd(LPC_RTC, ENABLE);
+#endif
 
     SYSTICK_InternalInit(100);
     SYSTICK_IntCmd(ENABLE);
@@ -272,8 +280,8 @@ void recording_intro(void) {
 void generate_name(void) {
     char keypad_num;
     lcd_buf_clear_screen();
-    lcd_buf_write_string("test", 4, 0);
     lcd_buf_update();
+#if RTC_ENABLED
     uint32_t month = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_MONTH);
     uint32_t day = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH);
     uint32_t hour = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_HOUR);
@@ -307,6 +315,28 @@ void generate_name(void) {
         }
 
     }
+#else
+    lcd_buf_write_string_multi("functionality\ndisabled", 22, 0, true);
+    lcd_buf_update(); 
+    pressed_key = 0;
+    while(1) {
+        if(pressed_key) {
+            keypad_num = pressed_key;
+            pressed_key = 0;
+            switch(keypad_num) {
+                case 'D' :
+                    ;
+                    next_func = &recording_intro;
+                    return;
+                    break;
+                default:
+                    break;
+            }
+
+        }
+
+    }   
+#endif
 
 }
 /**
@@ -438,25 +468,51 @@ void info(char title[16]) {
  * D is back
  * scrolling_active is false
 */
+#if GOT_SD_WORKING
+void playback(char title[16]) {
+    scrolling_active = false;
+    uint16_t bufout[16]; //or wev wordlength is for i2s
+    uint32_t toread = 0;    //size of the file, should be able to get it like we do in info
+    uint32_t hasread;   //use this to display time left later
+    
+    FIL *current_file
+    TODO:
+    fopen(*current_file, title, "r");
+    pressed_key = 0;
+    playback_init(bufout, toread);
+    fread(*current_file, bufout, toread, &hasread);
+    playback_play();
+    bool paused = false;
+    while(hasread < toread) {
+        if(!paused) 
+            fread(*current_file, bufout, toread, &hasread);
+        if(pressed_key) {
+            keypad_num = pressed_key;
+            switch(keypad_num) {
+                case 'B':
+                    if(paused) {
+                        playback_play();
+                        paused = false;
+                        break;
+                    } else {
+                        playback_pause();
+                        paused = true;
+                        break;
+                    }
+                case 'D':
+                fclose(*current_file);
+                    return
+            }
+        }
+    
+     //figure out timing stuff
 
-// playback(char title[16]) {
-//     scrolling_active = false;
-//     uint16_t bufout[16]; //or wev wordlength is for i2s
-//     uint32_t toread = 0;    //size of the file, should be able to get it like we do in info
-//     uint32_t hasread;   //use this to display time left later
-//     /**
-//      * FIL *current_file
-//      * TODO:
-//      * fopen(*current_file, title, "r");
-//      * while(hasread < toread) {
-//      *  fread(*current_file, bufout, toread, &hasread);
-//      *  i2s_play(bufout, speed);
-//      *  do something to do with displaying time using hasread
-//      * }
-//      * fclose(*current_file);
-//      * return;
-//     */
-// }
+    }
+    fclose(*current_file);
+    return;
+
+}
+#endif
 
 /**
  * Systick interupt handler
