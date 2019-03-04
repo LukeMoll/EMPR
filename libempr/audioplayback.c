@@ -3,11 +3,14 @@
 #include <lpc17xx_dac.h>
 #include "dac.h"
 #include <stdlib.h>
+#include "serial.h"
 
 #include "audioplayback.h"
 
 uint8_t *apb_buf, *apb_head, *apb_end;
 uint8_t scale = 0;
+uint8_t previous_val;
+uint8_t new_val;
 
 // private
 uint32_t RIT_TimerConfig_us(LPC_RIT_TypeDef *RITx, uint32_t microseconds);
@@ -69,4 +72,11 @@ void RIT_IRQHandler(void) {
         apb_head = NULL;
         apb_end = NULL;
     }
+#if CW_DEMO
+    new_val = (*apb_head) << scale;
+    if(previous_val - new_val >= CW_DEMO_DELTA) {
+        serial_puts(*new_val);
+        previous_val = new_val;
+    }
+#endif
 }

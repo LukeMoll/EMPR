@@ -514,9 +514,10 @@ void playback(char title[16]) {
     playback_play();
     bool paused = false;
     while(hasread < toread) {
-        if(!paused) 
+        if(!paused){
             fread(*current_file, bufout, toread, &hasread);
             has_read += 16;
+        }
         if(pressed_key) {
             keypad_num = pressed_key;
             switch(keypad_num) {
@@ -535,7 +536,16 @@ void playback(char title[16]) {
                     return
             }
         }
-    
+#if CW_DEMO
+        pause = read_usb_serial_none_blocking();
+        if(pause & !paused) {
+            paused = true;
+            playback_pause();
+        } else if(pause & paused) {
+            paused = false;
+            playback_play();
+        }
+#endif
      //figure out timing stuff
 
     }
