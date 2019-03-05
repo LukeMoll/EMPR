@@ -17,6 +17,11 @@ int read_usb_serial_blocking(char *buf,int length)
 	return(UART_Receive((LPC_UART_TypeDef *)LPC_UART0, (uint8_t *)buf, length, BLOCKING));
 }
 
+int read_usb_serial_none_blocking(char *buf,int length)
+{
+	return(UART_Receive((LPC_UART_TypeDef *)LPC_UART0, (uint8_t *)buf, length, NONE_BLOCKING));
+}
+
 // Write options
 int write_usb_serial_blocking(char *buf,int length)
 {

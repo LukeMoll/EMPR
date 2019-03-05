@@ -2,6 +2,7 @@
 #define LIBEMPR_SERIAL_H
 
 int read_usb_serial_blocking(char *buf,int length);
+int read_usb_serial_none_blocking(char *buf,int length);
 
 int write_serial(char *buf, int length);
 
