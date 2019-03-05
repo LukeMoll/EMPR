@@ -85,7 +85,7 @@ class ThreadedClient(Application):
     def workerThread(self):
         while self.running:
             #read the serial
-            sleep(2)
+            self.master.after(100)
             msg = self.ser.read(1)
             self.queue.put(msg)
     
