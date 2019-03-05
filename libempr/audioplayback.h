@@ -3,7 +3,12 @@
 
 #include <stdint.h>
 #include <stddef.h>
-void playback_init(uint8_t *buf, size_t len);
+
+#define PLAYBACK_4KHZ 250
+#define PLAYBACK_2KHZ 500
+#define PLAYBACK_1KHZ 1000
+
+void playback_init(uint8_t *buf, size_t len, uint32_t sample_period);
 void playback_play();
 void playback_pause();
 void playback_deinit();

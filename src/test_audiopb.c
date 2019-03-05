@@ -1,6 +1,7 @@
 #include <libempr/audioplayback.h>
 #include <libempr/status.h>
 #include <libempr/digit.h>
+#include <libempr/wave.h>
 #include <stdlib.h>
 #include <errno.h>
 
@@ -17,7 +18,7 @@ int main() {
     digit_clear();
     digit_update();
 
-    const size_t len = 0x2000;
+    const size_t len = 0x7900; // seems to be the largest buffer we can allocate
     // uint8_t *buf = malloc(len); // 1024 samples, will take ~1s to play
     uint8_t buf[len];
     if(NULL != buf) {
@@ -25,7 +26,7 @@ int main() {
         status_code(1);
         fillbuf(buf, len);
         status_code(2);
-        playback_init(buf, len);
+        playback_init(buf, len, PLAYBACK_4KHZ);
         status_code(3);
         playback_play();
         status_code(4);

@@ -12,7 +12,7 @@ uint8_t scale = 0;
 // private
 uint32_t RIT_TimerConfig_us(LPC_RIT_TypeDef *RITx, uint32_t microseconds);
 
-void playback_init(uint8_t *buf, size_t len) {
+void playback_init(uint8_t *buf, size_t len, uint32_t sample_period) {
     apb_buf = buf;
     apb_head = apb_buf;
     apb_end = apb_buf + len;
@@ -20,7 +20,7 @@ void playback_init(uint8_t *buf, size_t len) {
     dac_init();
 
     RIT_Init(LPC_RIT);
-    RIT_TimerConfig_us(LPC_RIT, 250); // 1000us = 1kHz
+    RIT_TimerConfig_us(LPC_RIT, sample_period); // 1000us = 1kHz
 }
 
 void playback_play() {
