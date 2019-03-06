@@ -15,22 +15,19 @@ void spi_init(void) {
 	pin_cfg.Pinmode = PINSEL_PINMODE_PULLUP;
 	pin_cfg.Portnum = 0;
 
-	pin_cfg.Pinnum = 15; // Clock
+	pin_cfg.Pinnum = 18; // MOSI (TX)
 	PINSEL_ConfigPin(&pin_cfg);
-
 	pin_cfg.Pinnum = 17; // MISO (RX)
 	PINSEL_ConfigPin(&pin_cfg);
-
-	pin_cfg.Pinnum = 18; // MOSI (TX)
+	pin_cfg.Pinnum = 15; // Clock
 	PINSEL_ConfigPin(&pin_cfg);
 
 	SPI_CFG_Type spi_cfg;
 	SPI_ConfigStructInit(&spi_cfg);
-	spi_cfg.CPHA = SPI_CPHA_SECOND;
-	spi_cfg.CPOL = SPI_CPOL_LO;
+	//spi_cfg.CPHA = 0;
+	//spi_cfg.CPOL = 0;
 	spi_cfg.ClockRate = 10000;
-	spi_cfg.Databit = SPI_DATABIT_8;
-
+	//spi_cfg.Databit = SPI_DATABIT_8;
 	SPI_Init(LPC_SPI, &spi_cfg);
 
 	cs_is_set = false;
@@ -61,21 +58,16 @@ void spi_cs_set(uint8_t portnum, uint8_t pinnum) {
 }
 
 void spi_cs_clear(void) {
-	if (!cs_is_set)
-		return;
-
 	GPIO_SetValue(cs_current_port, 1 << cs_current_pin);
 	cs_is_set = false;
 }
 
 void spi_send(uint8_t *buf, size_t len) {
-	SPI_DATA_SETUP_Type data_cfg;
-	data_cfg.counter = 0;
-	data_cfg.tx_data = (void *)buf;
-	data_cfg.rx_data = NULL;
-	data_cfg.length = len;
-
-	SPI_ReadWrite(LPC_SPI, &data_cfg, SPI_TRANSFER_POLLING);
+	SPI_DATA_SETUP_Type config;
+	config.tx_data = buf;
+	config.rx_data = NULL;
+	config.length = len;
+	SPI_ReadWrite(LPC_SPI, &config, SPI_TRANSFER_POLLING);
 }
 
 void spi_send_byte(uint8_t datum) {
@@ -83,11 +75,15 @@ void spi_send_byte(uint8_t datum) {
 }
 
 void spi_recv(uint8_t *buf, size_t len) {
-	SPI_DATA_SETUP_Type data_cfg;
-	data_cfg.counter = 0;
-	data_cfg.tx_data = NULL;
-	data_cfg.rx_data = (void *)buf;
-	data_cfg.length = len;
+	SPI_DATA_SETUP_Type config;
+	config.tx_data = NULL;
+	config.rx_data = buf;
+	config.length = len;
+	SPI_ReadWrite(LPC_SPI, &config, SPI_TRANSFER_POLLING);
+}
 
-	SPI_ReadWrite(LPC_SPI, &data_cfg, SPI_TRANSFER_POLLING);
+uint8_t spi_recv_byte(void) {
+	uint8_t datum;
+	spi_recv(&datum, 1);
+	return datum;
 }

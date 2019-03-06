@@ -11,5 +11,6 @@ void spi_cs_clear(void);
 void spi_send(uint8_t *buf, size_t len);
 void spi_send_byte(uint8_t datum);
 void spi_recv(uint8_t *buf, size_t len);
+uint8_t spi_recv_byte(void);
 
 #endif /* LIBEMPR_SPI_H */

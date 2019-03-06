@@ -8,7 +8,7 @@
 / Function Configurations
 /---------------------------------------------------------------------------*/
 
-#define FF_FS_READONLY	0
+#define FF_FS_READONLY	1
 /* This option switches read-only configuration. (0:Read/Write or 1:Read-only)
 /  Read-only configuration removes writing API functions, f_write(), f_sync(),
 /  f_unlink(), f_mkdir(), f_chmod(), f_rename(), f_truncate(), f_getfree()
@@ -190,8 +190,9 @@
 /  funciton will be available. */
 
 
-#define FF_MIN_SS		512
-#define FF_MAX_SS		512
+#define FF_BLOCK_SIZE   512
+#define FF_MIN_SS		FF_BLOCK_SIZE
+#define FF_MAX_SS		FF_BLOCK_SIZE
 /* This set of options configures the range of sector size to be supported. (512,
 /  1024, 2048 or 4096) Always set both 512 for most systems, generic memory card and
 /  harddisk. But a larger value may be required for on-board flash memory and some

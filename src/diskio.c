@@ -9,57 +9,83 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h> 
+#include <lpc17xx_pinsel.h>
+#include <lpc17xx_gpio.h>
 #include <libempr/spi.h>
-#include <libempr/serial.h>
 
 #include "ff.h"			/* Obtains integer types */
 #include "diskio.h"		/* Declarations of disk functions */
 
 /* Definitions of physical drive number for each drive */
-#define DEV_SD		0
+#define DEV_SD      0
 
-#define SD_CS_PORT	0
-#define SD_CS_PIN	16
-#define CRC 		0x01
+#define SD_CS_PORT  0
+#define SD_CS_PIN   11
 
-static void send_command(uint8_t command_index, uint32_t args) {
-	command_index &= 0b00111111;
-	command_index |= 0b10000000;
-	uint8_t args0 = args; //args lsb
-	uint8_t args1 = args >> 8;
-	uint8_t args2 = args >> 16;
-	uint8_t args3 = args >> 24; //args msb
-	//send the following 6 bytes - command index, args3, args2, args1, args0, CRC
+#define SD_CD_PORT  0
+#define SD_CD_PIN   10
+
+static bool block_addr = false;
+
+static void sd_send_command(uint8_t command, uint32_t args) {
+	uint8_t crc;
+	switch (command) {
+		case 0:
+			crc = 0x95;
+			break;
+		case 8:
+			crc = 0x87;
+			break;
+		default:
+			crc = 0x00;
+	}
+
+	// commands are 6 bits and preceded with 0b01
+	// send the following 6 bytes - command index, args3, args2, args1, args0, CRC
 	uint8_t bytes[6] = {
-		command_index,
-		args3,
-		args2,
-		args1,
-		args0,
-		CRC
+		0x40 | (command & 0x3F),
+		args >> 24,
+		args >> 16,
+		args >> 8,
+		args,
+		crc,
 	};
+	// force CS high then low to signal incoming command
+	spi_cs_set(SD_CS_PORT, SD_CS_PIN);
 	spi_send(bytes, 6);
+	spi_cs_clear();
 }
 
-static void send_acmd(uint8_t command_index, uint32_t args) {
-	send_command(55, 0x00000000);
-	send_command(command_index, args);
+static uint8_t sd_get_response(uint32_t *data, bool wait_busy) {
+	spi_cs_set(SD_CS_PORT, SD_CS_PIN);
+
+	uint8_t r1;
+	while ((r1 = spi_recv_byte()) & 0x80);
+
+	if (data != NULL) {
+		uint8_t buf[4];
+		spi_recv(buf, 4);
+		*data = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
+	}
+
+	while (wait_busy && spi_recv_byte() != 0xFF) {}
+
+	spi_cs_clear();
+	return r1;
 }
 
-static uint8_t response_r1() {
-	uint8_t response = 0xFF;
-	while(response == 0xFF) //change this so that it also returns a timeout
-		spi_recv(&response, 1);
-
-	return response;
+static uint8_t sd_send_acmd(uint8_t command, uint32_t args) {
+	sd_send_command(55, 0x00000000);
+	uint8_t r1 = sd_get_response(NULL, false);
+	if (r1 == 0x01)
+		sd_send_command(command, args);
+	return r1;
 }
 
-static void response_r7(uint8_t *response) {
-	//response is always gonna be 5 bytes long
-	response[0] = 0xFF;
-
-	while(response[0] == 0xFF) //add a timeout thingy
-		spi_recv(response, 5);
+static bool sd_is_connected(void) {
+	GPIO_SetDir(SD_CD_PORT, 1 << SD_CD_PIN, 0);
+	return (bool)(GPIO_ReadValue(SD_CD_PORT) & (1 << SD_CD_PIN));
 }
 
 /*-----------------------------------------------------------------------*/
@@ -67,8 +93,6 @@ static void response_r7(uint8_t *response) {
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_status(BYTE pdrv) {
-	serial_printf("disk_status(%d)\r\n", pdrv);
-
 	if (pdrv != DEV_SD) {
 		return STA_NODISK;
 	}
@@ -83,48 +107,76 @@ DSTATUS disk_status(BYTE pdrv) {
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_initialize(BYTE pdrv) {
-	serial_printf("disk_initialize(%d)\r\n", pdrv);
-
-	bool unknown_card = false;
-
-	if (pdrv != DEV_SD) {
-		return STA_NODISK;
-	}
-
-	// assuming >= 1 ms has passed before this function is called.
 	spi_cs_init(SD_CS_PORT, SD_CS_PIN);
+	uint8_t r1;
+
+	if (pdrv != DEV_SD)
+		return STA_NODISK;
+
+
+	if (!sd_is_connected())
+		return STA_NODISK;
+
+	// assume >= 1ms has passed
+
+	// Hold CS and DI high for >= 74 clock cycles
 	spi_cs_clear();
+	uint8_t high_bytes[10] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+	spi_send(high_bytes, 10);
 
-	int x = 10;
-	while (x--)
-		spi_send_byte(0);
-	//after sending 80 bytes (>74 dummy clock cycles), set CS low, and send CMD0
-	spi_cs_set(SD_CS_PORT, SD_CS_PIN);
-	send_command(0, 0x00000000);
-	if(response_r1() != 0x01) {
-		unknown_card = true;
-	};
-	send_command(8, 0x000001AA);
-	uint8_t r7[5];
-	response_r7(r7);
-	if(!((r7[4] == 0xAA) && (r7[4] == 0x01))) {
-		unknown_card = true;
-	}
-	//a PC-- would be so incredibly useful here
-	uint8_t r1 = 0x01;
-	while(r1 == 0x01) {
-		r1 = response_r1();
-		//if error or timeout, unknows_card()
+	r1 = 0;
+	while (r1 != 0x01) {
+		sd_send_command(0, 0x00000000);
+		r1 = sd_get_response(NULL, false);
 	}
 
-	if(r1 == 0x00)
-		send_command(58, 0x00000000);
+	uint32_t data;
+	sd_send_command(8, 0x000001AA);
+	r1 = sd_get_response(&data, false);
+
+	uint32_t acmd41_arg;
+	if (r1 != 0x01)
+		acmd41_arg = 0x00000000;
+	else if (data == 0x000001AA)
+		acmd41_arg = 0x40000000;
 	else
-		unknown_card = true;
+		return STA_NOINIT; // unknown card!
 
-	//read CCS bit in OCR to determine version
-	if(unknown_card)
-		return STA_NOINIT;
+	r1 = 0x01;
+	while (r1 == 0x01) {
+		sd_send_acmd(41, acmd41_arg);
+		r1 = sd_get_response(NULL, false);
+	}
+
+	if (acmd41_arg == 0x40000000) {
+		if (r1 != 0x00)
+			return STA_NOINIT;
+
+		// SD v2+, check if high capacity
+		uint32_t ocr;
+		sd_send_command(58, 0x00000000);
+		r1 = sd_get_response(&ocr, false);
+		if (r1 != 0x00)
+			return STA_NOINIT;
+
+		block_addr = (bool)(ocr & (1 << 30));
+	} else if (r1 != 0x00) {
+		r1 = 0x01;
+		while (r1 == 0x01) {
+			sd_send_command(1, 0x00000000);
+			r1 = sd_get_response(NULL, false);
+		}
+
+		if (r1 != 0x00)
+			return STA_NOINIT; // unknown card!
+	}
+
+	if (!block_addr) {
+		sd_send_command(16, FF_BLOCK_SIZE); // set block size to 512 bytes for FAT
+		r1 = sd_get_response(NULL, false);
+		if (r1 != 0x00)
+			return STA_NOINIT;
+	}
 
 	return 0;
 }
@@ -136,20 +188,39 @@ DSTATUS disk_initialize(BYTE pdrv) {
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_read(BYTE pdrv, BYTE *buff, DWORD sector, UINT count) {
-	serial_printf("disk_read(%d, buff, sector, count)\r\n", pdrv);
-
 	if (pdrv != DEV_SD)
 		return RES_PARERR;
 
-	if(response_r1() != 0);
-		// return error (or retry? idk)
-		
-	spi_recv((uint8_t *)buff, count);
+	uint32_t addr = block_addr ? sector : sector * FF_BLOCK_SIZE;
+	sd_send_command(18, addr);
+	uint8_t r1 = sd_get_response(NULL, false);
+	if (r1 != 0x00)
+		return r1 & 0x20 ? RES_PARERR : RES_ERROR;
 
-	send_command(12, 0x00000000);
-	if(response_r1() != 0);
-		// return relevant error;
-		
+	// read in the blocks!
+	spi_cs_set(SD_CS_PORT, SD_CS_PIN);
+	for (size_t i = 0; i < count; i++) {
+		uint8_t token;
+		while ((token = spi_recv_byte()) == 0xFF) {}
+
+		if (token != 0xFE)
+			return RES_ERROR;
+
+		spi_recv(buff + (FF_BLOCK_SIZE * i), FF_BLOCK_SIZE);
+		spi_recv(NULL, 2); // get CRC and throw it away because we don't care
+	}
+	spi_cs_clear();
+
+	// terminate read
+	sd_send_command(12, 0x00000000);
+
+	spi_cs_set(SD_CS_PORT, SD_CS_PIN);
+	spi_recv(NULL, 1);
+
+	r1 = sd_get_response(NULL, true);
+	if (r1 != 0x00)
+		return RES_ERROR;
+
 	return RES_OK;
 }
 
@@ -162,18 +233,18 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, DWORD sector, UINT count) {
 #if FF_FS_READONLY == 0
 
 DRESULT disk_write (BYTE pdrv, const BYTE *buff, DWORD sector, UINT count) {
-	serial_printf("disk_write(%d, buff, sector, count)\r\n", pdrv);
-	
 	if (pdrv != DEV_SD)
 		return RES_PARERR;
+
+#if 0
 	//
 	//For SDC, number of sectors to pre-erased at start of the write transaction can be specified by an ACMD23 prior to CMD25
-	send_acmd(23, (count & 0x007FFFFF));
-	if (response_r1() != 0);
+	//send_acmd(23, (count & 0x007FFFFF));
+	//if (response_r1() != 0);
 		//return relevant error
 		
-	send_command(25, sector);
-	if (response_r1() != 0);
+	sd_send_command(25, sector);
+	//if (response_r1() != 0);
 		//return relevant error
 
 	size_t i = 0;
@@ -181,10 +252,11 @@ DRESULT disk_write (BYTE pdrv, const BYTE *buff, DWORD sector, UINT count) {
 		BYTE datapack[3] = {0xFC, buff[i], pdrv};
 		spi_send((uint8_t *)datapack, 3);
 		i++;
-		if((response_r1() & 0x0F) != 0x05);
+		//if((response_r1() & 0x0F) != 0x05);
 			//return relevant error
 	}
 	spi_send_byte(0xFD);
+#endif
 	return RES_OK;
 
 
@@ -201,8 +273,6 @@ DRESULT disk_write (BYTE pdrv, const BYTE *buff, DWORD sector, UINT count) {
 /*-----------------------------------------------------------------------*/
 
 DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void *buff) {
-	serial_printf("disk_ioctl(%d, %d, buff)\r\n", pdrv, cmd);
-
 	if (pdrv != DEV_SD)
 		return RES_PARERR;
 
