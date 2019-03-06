@@ -57,17 +57,6 @@ void arc_rithandler(void) {
         NVIC_DisableIRQ(RIT_IRQn);
         playback_init(buf, BUF_LEN, PLAYBACK_4KHZ);
         playback_play();
-        /** TODO:
-         * buf should be accepted as uint16_t[]
-         * need to handle that both playback and rec uses RIT interrupt
-         *  + rit.h
-         *      RIT_IRQHandler(void) {
-         *          RIT_GetIntStatus(LPC_RIT);
-         *          rithandler();
-         *      }
-         *      void *rithandler(void)
-         *      setRITHandler(fn) {rithandler = fn;}
-         */
     }
 
 }
