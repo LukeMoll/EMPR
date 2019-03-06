@@ -14,10 +14,11 @@
 #include <libempr/serial.h>
 #include <libempr/keypad.h>
 #include <libempr/audioplayback.h>
+#include "ff.h"
 
 /*disables all the rtc stuff to make testing other functionalities easier*/
 #define RTC_ENABLE false
-#define GOT_SD_WORKING false
+#define GOT_SD_WORKING true
 
 void SysTick_Handler(void);
 void intro_screen();
@@ -54,6 +55,11 @@ bool scrolling_active = false;
 int8_t scrolling_index = 0;
 
 uint8_t twotal = 0;
+
+/*this is useful for SD card stuff*/
+
+#define SD_PATH ""
+FILINFO files[255];
 
 /*
 *configure everything, start the loop
@@ -93,6 +99,13 @@ int main(void) {
     SYSTICK_InternalInit(100);
     SYSTICK_IntCmd(ENABLE);
     SYSTICK_Cmd(ENABLE);
+
+    FRESULT res;
+
+	FATFS fs;
+	res = f_mount(&fs, "", 1);
+    if(res != FR_OK)
+        serial_printf("sd card mount failed\r\n");
 
     intro_screen();
 
@@ -178,6 +191,27 @@ void choose_mode() {
 */
 void browser(void) {
 #if GOT_SD_WORKING
+    scrolling_active = false;
+
+    FRESULT res;
+    DIR dp;
+
+    if ((res = f_opendir(&dp, SD_PATH)) != FR_OK)
+        serial_printf("SD card failed :(");
+    FILINFO fno;
+    size_t i = 0;
+    while ((res = f_readdir(&dp, &fno)) == FR_OK) {
+        if (fno.fname[0] == 0)
+            break;
+        files[i] = 0;
+        i++;
+    }
+    uint8_t no_of_files = i;
+    char list_of_text[no_of_files][16]
+    for(i=0; i < no_of_files; i++) {
+        list_of_texts[i] = files[i].fname
+    }
+
     //TODO:
     //get a list of titles (can't figure out how to do it using fatfs, might be worth keeping them as a volatile variable? idk)
     //list_of_text = list_of_titles
@@ -198,7 +232,7 @@ void browser(void) {
     char keypad_num;
 
     while(1) {
-        current_name = list_of_text[scrolling_index%3];
+        current_name = list_of_text[scrolling_index%no_of_files];
         lcd_buf_write_string(current_name, 16, 0);
         if(pressed_key) { 
             keypad_num = pressed_key;
@@ -207,13 +241,7 @@ void browser(void) {
                     break;
                 case 'A': //info
                     ;
-                    info(current_name);
-                    /**
-                    *FRESULT f_readdir (
-	                DIR* dp,			 Pointer to the open directory object 
-	                FILINFO* fno		 Pointer to file information to return 
-                    )
-                    */
+                    info(scrolling_index%no_of_files);
                     break;
                 case 'B': //playback
                     ;
@@ -302,10 +330,9 @@ void generate_name(void) {
     uint32_t day = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH);
     uint32_t hour = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_HOUR);
     uint32_t minute = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_MINUTE);
-    uint32_t seconds = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_SECOND);
     char buff[17];
-    snprintf(buff, 16, "%02u/%02u - %02u:%02u:%02u", month, day, hour, minute, seconds); //Can change this later, for now just wanted to get RTC working
-    lcd_buf_write_string(buff, 16, 0);
+    snprintf(buff, 12, "%02u/%02u-%02u: %02u", month, day, hour, minute); //Can change this later, for now just wanted to get RTC working
+    lcd_buf_write_string(buff, 12, 0);
     lcd_buf_update();
     lcd_buf_write_string("    B:>     D:< ", 16, 16);
     pressed_key = 0;
@@ -383,9 +410,9 @@ void type_name(void) {
     lcd_buf_write_string("    B:>     D:< ", 16, 16);
     uint8_t index = 0;
     pressed_key = 0;
-    char buf[17];
+    char buf[13];
     sprintf(buf, "                ");
-    while(index < 16) {
+    while(index < 12) {
         if(pressed_key) {
             char chara = pressed_key;
             pressed_key = 0;
@@ -415,7 +442,7 @@ void type_name(void) {
                 default:
                     ;
                     buf[index] = chara;
-                    lcd_buf_write_string(buf, 17, 0);
+                    lcd_buf_write_string(buf, 13, 0);
                     index++;
                     pressed_key = 0;
                     break;
@@ -454,19 +481,18 @@ void start_recording(char buf[17]) {
  * scrolling_active is true
 */
 
-void info(char title[16]) {
+void info(uint8_t files_index) {
     //TODO: test, once SD is working
     scrolling_active = true;
     scrolling_index = 0;
 #if GOT_SD_WORKING
-    FIL *current_file;
-    FRESULT our_file = f_open(current_file, title, "r");
-    FILINFO info;
-    f_readdir(/*pointer to open directory object*/, info);
-    char info_list [3][16];
-    sprintf(info_list[0], "size :  %08u", info.fsize),
-    sprintf(info_list[1], "date :  %08u", info.fdate),
-    sprintf(info_list[2], "time :  %08u", info.ftime),
+    
+    FILINFO info = files[files_index];
+    char info_list [4][16];
+    info_list[0] = info.fname;
+    sprintf(info_list[1], "size :  %08u", info.fsize),
+    sprintf(info_list[2], "date :  %08u", info.fdate),
+    sprintf(info_list[3], "time :  %08u", info.ftime),
 #else
     char info_list[3][16] = {"dddddddddddddddd", "eeeeeeeeeeeeeeee", "ffffffffffffffff"}; /*change this later when I figure out how to open files*/
 #endif
@@ -497,7 +523,7 @@ void info(char title[16]) {
  * D is back
  * scrolling_active is false
 */
-#if GOT_SD_WORKING
+#if 0
 void playback(char title[16]) {
     //TODO: test once SD is working
     scrolling_active = false;
