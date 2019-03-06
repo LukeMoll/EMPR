@@ -4,10 +4,10 @@
 #include <lpc17xx_pinsel.h>
 #include <lpc_types.h>
 
-void adc_setup(uint8_t port, uint8_t pin, uint8_t channel) {
+void adc_setup(uint8_t port, uint8_t pin, uint8_t funcnum, uint8_t channel) {
     // Set up the input pin
     PINSEL_CFG_Type PinCfg;
-    PinCfg.Funcnum = 1; // might need to parameterise this in future, ADC is different funcs on different pins :/
+    PinCfg.Funcnum = funcnum;
     PinCfg.OpenDrain = PINSEL_PINMODE_NORMAL;
     PinCfg.Pinmode = PINSEL_PINMODE_TRISTATE; 
     PinCfg.Portnum = port;
