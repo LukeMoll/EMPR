@@ -248,6 +248,18 @@
 #define GET_FATTIME()	((DWORD)(FF_NORTC_YEAR - 1980) << 25 | (DWORD)FF_NORTC_MON << 21 | (DWORD)FF_NORTC_MDAY << 16)
 #else
 #define GET_FATTIME()	get_fattime()
+
+DWORD get_fattime(void) {
+	uint32_t year = (RTC_GetTime(LPC_RTC, RTC_TIMETYPE_YEAR) - 1980) << 25;
+	uint32_t month = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_MONTH) << 21;
+	uint32_t day = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH) << 16;
+	uint32_t hour = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_HOUR) << 11;
+	uint32_t min = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_MINUTE) << 5;
+	// this only supports 2 second increments for some silly reason
+	uint32_t sec = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_SECOND) >> 1;
+
+	return year | month | day | hour | min | sec;
+}
 #endif
 
 
