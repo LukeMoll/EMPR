@@ -473,7 +473,7 @@ void type_name(void) {
  * scrolling_active is false
 */
 
-void start_recording(char buf[17]) {
+void start_recording(char buf[12]) {
     //TODO: record sound, save it to SD card, with name
     scrolling_active = false;
     lcd_buf_clear_screen();
@@ -485,11 +485,21 @@ void start_recording(char buf[17]) {
     //read from the audioboard into the buf
     size_t audiolen = 0x2000;
     uint16_t audiobuf[audiolen];
-    recording_init(audiobuf, audiolen, PLAYBACK_8KHz);
+    recording_init(audiobuf, audiolen, PLAYBACK_8KHZ);
     recording_start();
+    while(!isrecording()) {};
     recording_deinit();
+
     //write the buf to the sd card
-    while(1){};
+    FRESULT res;
+    FIL fp;
+
+    if ((res = f_open(&fp, buf, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK)
+        serial_printf("saving is broke :(");
+    UINT bytes_written;
+    if ((res = f_write(&fp, audiobuf, audiolen, &bytes_written)) != FR_OK)
+        serial_printf("saving is broke 2.0");
+    if ((res = f_close(&fp)) != FR_OK)
     return;
 }
 
@@ -541,25 +551,23 @@ void info(uint8_t files_index) {
  * D is back
  * scrolling_active is false
 */
-#if 0
-void playback(char title[16]) {
+#if GOT_SD_WORKING
+void playback(uint8_t index) {
     //TODO: test once SD is working
+
     scrolling_active = false;
-    uint16_t bufout[16]; //or wev wordlength is for i2s
-    uint32_t toread = f_size(bufout);    //size of the file, should be able to get it like we do in info
+    uint32_t len = 0x7000;
+    uint8_t bufout[len]; //buffer we read/play into
+    uint32_t toread = files[i].fsize;    //size of the file
     uint32_t hasread = 0;   //use this to display time left later
-    
+    TCHAR name = files[i].fname
     FIL *current_file
     TODO:
-    fopen(*current_file, title, "r"); //not actually title, it needs to have the .wav extension
-    pressed_key = 0;
-    playback_init(bufout, toread);
-    fread(*current_file, bufout, toread, &hasread);
-    playback_play();
-    bool paused = false;
+    fopen(*current_file, &title, FA_READ); //not actually title, it needs to have the .wav extension
+   
     while(hasread < toread) {
         if(!paused){
-            fread(*current_file, bufout, toread, &hasread);
+            fread(*current_file, bufout, len, &hasread);
             has_read += 16;
         }
         if(pressed_key) {
