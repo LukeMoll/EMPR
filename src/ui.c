@@ -517,7 +517,7 @@ void info(uint8_t files_index) {
     
     FILINFO file_info = files[files_index];
     char info_list [4][16];
-    snprintf(info_list[0], "%s", file_info.fname);
+    sprintf(info_list[0], "%s", file_info.fname);
     sprintf(info_list[1], "size :  %08u", file_info.fsize);
     sprintf(info_list[2], "date :  %08u", file_info.fdate);
     sprintf(info_list[3], "time :  %08u", file_info.ftime);
