@@ -32,7 +32,7 @@ void generate_name(void);
 void type_name(void);
 void start_recording(char buf[17]);
 void info(uint8_t files_index);
-void playback(char title[16]);
+void playback(uint8_t index);
 void two_bot();
 
 
@@ -488,7 +488,7 @@ void start_recording(char buf[12]) {
     recording_init(audiobuf, audiolen, PLAYBACK_8KHZ);
     recording_start();
     while(!isrecording()) {};
-    recording_deinit();
+
 
     //write the buf to the sd card
     FRESULT res;
@@ -551,19 +551,18 @@ void info(uint8_t files_index) {
  * D is back
  * scrolling_active is false
 */
-#if GOT_SD_WORKING
+#if 0
 void playback(uint8_t index) {
     //TODO: test once SD is working
 
     scrolling_active = false;
     uint32_t len = 0x7000;
     uint8_t bufout[len]; //buffer we read/play into
-    uint32_t toread = files[i].fsize;    //size of the file
+    uint32_t toread = files[index].fsize;    //size of the file
     uint32_t hasread = 0;   //use this to display time left later
-    TCHAR name = files[i].fname
-    FIL *current_file
-    TODO:
-    fopen(*current_file, &title, FA_READ); //not actually title, it needs to have the .wav extension
+    TCHAR name = files[index].fname;
+    FIL *current_file;
+    fopen(*current_file, &name, FA_READ); //not actually title, it needs to have the .wav extension
    
     while(hasread < toread) {
         if(!paused){
