@@ -26,6 +26,7 @@
 extern "C" {
 #endif
 
+#include <lpc17xx_rtc.h>
 #include "ffconf.h"		/* FatFs configuration options */
 
 #if FF_DEFINED != FFCONF_DEF

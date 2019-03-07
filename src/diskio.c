@@ -28,6 +28,10 @@
 
 static bool block_addr = false;
 
+static void sd_wait_while_busy() {
+	while (spi_recv_byte() != 0xFF) {}
+}
+
 static void sd_send_command(uint8_t command, uint32_t args) {
 	uint8_t crc;
 	switch (command) {
@@ -51,13 +55,15 @@ static void sd_send_command(uint8_t command, uint32_t args) {
 		args,
 		crc,
 	};
+	
 	// force CS high then low to signal incoming command
 	spi_cs_set(SD_CS_PORT, SD_CS_PIN);
+	sd_wait_while_busy();
 	spi_send(bytes, 6);
 	spi_cs_clear();
 }
 
-static uint8_t sd_get_response(uint32_t *data, bool wait_busy) {
+static uint8_t sd_get_response(uint32_t *data) {
 	spi_cs_set(SD_CS_PORT, SD_CS_PIN);
 
 	uint8_t r1;
@@ -69,15 +75,13 @@ static uint8_t sd_get_response(uint32_t *data, bool wait_busy) {
 		*data = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
 	}
 
-	while (wait_busy && spi_recv_byte() != 0xFF) {}
-
 	spi_cs_clear();
 	return r1;
 }
 
 static uint8_t sd_send_acmd(uint8_t command, uint32_t args) {
 	sd_send_command(55, 0x00000000);
-	uint8_t r1 = sd_get_response(NULL, false);
+	uint8_t r1 = sd_get_response(NULL);
 	if (r1 == 0x01)
 		sd_send_command(command, args);
 	return r1;
@@ -127,12 +131,12 @@ DSTATUS disk_initialize(BYTE pdrv) {
 	r1 = 0;
 	while (r1 != 0x01) {
 		sd_send_command(0, 0x00000000);
-		r1 = sd_get_response(NULL, false);
+		r1 = sd_get_response(NULL);
 	}
 
 	uint32_t data;
 	sd_send_command(8, 0x000001AA);
-	r1 = sd_get_response(&data, false);
+	r1 = sd_get_response(&data);
 
 	uint32_t acmd41_arg;
 	if (r1 != 0x01)
@@ -145,7 +149,7 @@ DSTATUS disk_initialize(BYTE pdrv) {
 	r1 = 0x01;
 	while (r1 == 0x01) {
 		sd_send_acmd(41, acmd41_arg);
-		r1 = sd_get_response(NULL, false);
+		r1 = sd_get_response(NULL);
 	}
 
 	if (acmd41_arg == 0x40000000) {
@@ -155,7 +159,7 @@ DSTATUS disk_initialize(BYTE pdrv) {
 		// SD v2+, check if high capacity
 		uint32_t ocr;
 		sd_send_command(58, 0x00000000);
-		r1 = sd_get_response(&ocr, false);
+		r1 = sd_get_response(&ocr);
 		if (r1 != 0x00)
 			return STA_NOINIT;
 
@@ -164,7 +168,7 @@ DSTATUS disk_initialize(BYTE pdrv) {
 		r1 = 0x01;
 		while (r1 == 0x01) {
 			sd_send_command(1, 0x00000000);
-			r1 = sd_get_response(NULL, false);
+			r1 = sd_get_response(NULL);
 		}
 
 		if (r1 != 0x00)
@@ -173,14 +177,13 @@ DSTATUS disk_initialize(BYTE pdrv) {
 
 	if (!block_addr) {
 		sd_send_command(16, FF_BLOCK_SIZE); // set block size to 512 bytes for FAT
-		r1 = sd_get_response(NULL, false);
+		r1 = sd_get_response(NULL);
 		if (r1 != 0x00)
 			return STA_NOINIT;
 	}
 
 	return 0;
 }
-
 
 
 /*-----------------------------------------------------------------------*/
@@ -193,7 +196,7 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, DWORD sector, UINT count) {
 
 	uint32_t addr = block_addr ? sector : sector * FF_BLOCK_SIZE;
 	sd_send_command(18, addr);
-	uint8_t r1 = sd_get_response(NULL, false);
+	uint8_t r1 = sd_get_response(NULL);
 	if (r1 != 0x00)
 		return r1 & 0x20 ? RES_PARERR : RES_ERROR;
 
@@ -217,7 +220,7 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, DWORD sector, UINT count) {
 	spi_cs_set(SD_CS_PORT, SD_CS_PIN);
 	spi_recv(NULL, 1);
 
-	r1 = sd_get_response(NULL, true);
+	r1 = sd_get_response(NULL);
 	if (r1 != 0x00)
 		return RES_ERROR;
 
@@ -232,33 +235,35 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, DWORD sector, UINT count) {
 
 #if FF_FS_READONLY == 0
 
-DRESULT disk_write (BYTE pdrv, const BYTE *buff, DWORD sector, UINT count) {
+DRESULT disk_write(BYTE pdrv, const BYTE *buff, DWORD sector, UINT count) {
 	if (pdrv != DEV_SD)
 		return RES_PARERR;
 
-#if 0
-	//
-	//For SDC, number of sectors to pre-erased at start of the write transaction can be specified by an ACMD23 prior to CMD25
-	//send_acmd(23, (count & 0x007FFFFF));
-	//if (response_r1() != 0);
-		//return relevant error
-		
-	sd_send_command(25, sector);
-	//if (response_r1() != 0);
-		//return relevant error
+	uint32_t addr = block_addr ? sector : sector * FF_BLOCK_SIZE;
+	sd_send_command(25, addr);
+	uint8_t r1 = sd_get_response(NULL);
+	if (r1 != 0x00)
+		return r1 & 0x20 ? RES_PARERR : RES_ERROR;
 
-	size_t i = 0;
-	while(count--) {
-		BYTE datapack[3] = {0xFC, buff[i], pdrv};
-		spi_send((uint8_t *)datapack, 3);
-		i++;
-		//if((response_r1() & 0x0F) != 0x05);
-			//return relevant error
+	// wait at least a byte before sending packets
+	spi_cs_set(SD_CS_PORT, SD_CS_PIN);
+	spi_send_byte(0xFF);
+	for (size_t i = 0; i < count; i++) {
+		spi_send_byte(0xFC);
+		spi_send((uint8_t *)(buff + (FF_BLOCK_SIZE * i)), FF_BLOCK_SIZE);
+		spi_send_byte(0x00); // send useless CRC
+		spi_send_byte(0x00);
+
+		if ((spi_recv_byte() & 0x1f) != 0x05)
+			return RES_ERROR;
+		sd_wait_while_busy();
 	}
-	spi_send_byte(0xFD);
-#endif
-	return RES_OK;
 
+	spi_send_byte(0xFD);
+	spi_recv_byte(); // wait at least a byte
+	spi_cs_clear();
+
+	return RES_OK;
 
 	// TODO: write from buff onto SDC
 	// If write protect, return RES_WRPRT
