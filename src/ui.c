@@ -14,7 +14,9 @@
 #include <libempr/serial.h>
 #include <libempr/keypad.h>
 #include <libempr/audioplayback.h>
+#include <libempr/spi.h>
 #include "ff.h"
+
 
 /*disables all the rtc stuff to make testing other functionalities easier*/
 #define RTC_ENABLE false
@@ -28,7 +30,7 @@ void recording_intro(void);
 void generate_name(void);
 void type_name(void);
 void start_recording(char buf[17]);
-void info(char title[16]);
+void info(uint8_t files_index);
 void playback(char title[16]);
 void two_bot();
 
@@ -67,7 +69,6 @@ FILINFO files[255];
 int main(void) {
 
     scrolling_active = false;
-
     i2c_setup_polling();
     lcd_init();
     lcd_buf_flush();
@@ -100,10 +101,14 @@ int main(void) {
     SYSTICK_IntCmd(ENABLE);
     SYSTICK_Cmd(ENABLE);
 
+
+    spi_init();
     FRESULT res;
 
 	FATFS fs;
+
 	res = f_mount(&fs, "", 1);
+  
     if(res != FR_OK)
         serial_printf("sd card mount failed\r\n");
 
@@ -199,17 +204,23 @@ void browser(void) {
     if ((res = f_opendir(&dp, SD_PATH)) != FR_OK)
         serial_printf("SD card failed :(");
     FILINFO fno;
-    size_t i = 0;
+
+    uint8_t no_of_files = 0;
     while ((res = f_readdir(&dp, &fno)) == FR_OK) {
         if (fno.fname[0] == 0)
             break;
-        files[i] = 0;
-        i++;
+
+        if (fno.fattrib & (AM_DIR | AM_HID | AM_SYS))
+            continue;
+
+        memcpy(&files[no_of_files], &fno, sizeof(FILINFO));
+        no_of_files++;
     }
-    uint8_t no_of_files = i;
-    char list_of_text[no_of_files][16]
-    for(i=0; i < no_of_files; i++) {
-        list_of_texts[i] = files[i].fname
+    f_closedir(&dp);
+    char list_of_text[no_of_files][12];
+    for(size_t i = 0; i < no_of_files; i++) {
+        //snprintf(list_of_text[i], 16, "aaaaaaaaaaaaaaaa");
+        strncpy(list_of_text[i], files[i].fname, 12);
     }
 
     //TODO:
@@ -217,22 +228,24 @@ void browser(void) {
     //list_of_text = list_of_titles
 #else
     char list_of_text[3][16] = {"aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb", "cccccccccccccccc"};
+    uint8_t no_of_files = 3;
 #endif
     scrolling_active = true;
     //have a pointer to the array that is a list of names
     scrolling_index = 0;
     lcd_buf_clear_screen();
-    lcd_buf_write_string(list_of_text[scrolling_index], 16, 0); 
+    lcd_buf_write_string(list_of_text[scrolling_index], 12, 0); 
     lcd_buf_write_string("A:$ B:>      D:< ", 16, 16);
     // lcd_buf_write_string("D:< ", 4, 27);
     lcd_buf_update();
     //add the info string
-    
+    status_code(2);
     char *current_name;
     char keypad_num;
 
     while(1) {
         current_name = list_of_text[scrolling_index%no_of_files];
+        status_code(scrolling_index%no_of_files);
         lcd_buf_write_string(current_name, 16, 0);
         if(pressed_key) { 
             keypad_num = pressed_key;
@@ -444,7 +457,6 @@ void type_name(void) {
                     buf[index] = chara;
                     lcd_buf_write_string(buf, 13, 0);
                     index++;
-                    pressed_key = 0;
                     break;
             }
         }
@@ -487,12 +499,12 @@ void info(uint8_t files_index) {
     scrolling_index = 0;
 #if GOT_SD_WORKING
     
-    FILINFO info = files[files_index];
+    FILINFO file_info = files[files_index];
     char info_list [4][16];
-    info_list[0] = info.fname;
-    sprintf(info_list[1], "size :  %08u", info.fsize),
-    sprintf(info_list[2], "date :  %08u", info.fdate),
-    sprintf(info_list[3], "time :  %08u", info.ftime),
+    snprintf(info_list[0], "%s", file_info.fname);
+    sprintf(info_list[1], "size :  %08u", file_info.fsize);
+    sprintf(info_list[2], "date :  %08u", file_info.fdate);
+    sprintf(info_list[3], "time :  %08u", file_info.ftime);
 #else
     char info_list[3][16] = {"dddddddddddddddd", "eeeeeeeeeeeeeeee", "ffffffffffffffff"}; /*change this later when I figure out how to open files*/
 #endif
