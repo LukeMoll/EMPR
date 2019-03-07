@@ -5,6 +5,9 @@
 from scipy.io import wavfile
 import numpy as np
 import serial
+from datetime import timedelta, datetime
+import time
+from process_samples import removeDC
 
 try:
     # stolen from send_dates.py for a working serial config
@@ -17,6 +20,15 @@ buf = None
 written = None
 period = None
 length = None
+start = None
+
+def progress(current, mx):
+    print("[{:.2f}%]  {} out of {}{}                          ".format(
+        (current / mx)*100, 
+        current, 
+        mx, 
+        '.' * (current % 3))
+    , end="\r")
 
 print("Waiting for start of new transfer")
 for line in ser: 
@@ -38,17 +50,29 @@ for line in ser:
             print("Sample recieved before all variables set!")
             print("buf:", buf,"\nwritten:", written, "\nperiod:", period)
             exit()
-        
+        if written == 0:
+            start = time.time()
         if written >= length:
             print("Excess samples recieved!")
+        # shusb pylint, `buf` will be a numpy array by now
+
         buf[written] = int(line.decode(encoding="ascii").strip()[2:], base=16)
         written += 1
-        print(".", end="", flush=True)
+        if(written & 31 == 0):
+            # print(".", end="", flush=True)
+            progress(written, length)
     elif line.startswith(b'BUFFER DUMP END'):
         print("{} samples written out of {}.".format(written, length))
+        print("Transfer took {}".format(timedelta(seconds=time.time() - start)))
         break
 
     elif line.startswith(b'BUFFER DUMP') or True:
         print(line.decode(encoding="ascii").strip())
     
-wavfile.write("buf.wav", 1000000 // period, buf)
+
+fnbase = datetime.today().isoformat().split(".")[0].replace(":","-").replace("T","_")
+wavfile.write("{}_buf.wav".format(fnbase),  1000000 // period, buf[1:])
+wavfile.write("{}_nodc.wav".format(fnbase), 1000000 // period, removeDC(buf[1:]))
+with open("{}_samples.csv".format(fnbase), 'w+') as s:
+    for v in buf:
+        s.write(str(v) + "\n")

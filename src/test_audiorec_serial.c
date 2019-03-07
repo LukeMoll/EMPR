@@ -3,6 +3,7 @@
 #include <lpc17xx_clkpwr.h> // https://youtu.be/h-mUGj41hWA
 #include <lpc17xx_gpio.h>
 #include <stdbool.h>
+#define EMPR_FASTSERIAL_NT
 #include <libempr/serial.h>
 #include <libempr/status.h>
 #include <libempr/i2c.h>
@@ -21,9 +22,9 @@ void main(void) {
     return;
 }
 
-uint8_t period_us = PLAYBACK_4KHZ;
+uint8_t period_us = 125;
 
-#define BUF_LEN 0x2000
+#define BUF_LEN 0x3000
 uint16_t buf[BUF_LEN];
 uint16_t seq = 0;
 void init(){
@@ -49,11 +50,11 @@ void dumpbuffer(uint16_t * buf, uint16_t len) {
     uint16_t i;
     for(i=0; i<len; i++) {
         serial_printf("0x%x\r\n", buf[i]);
-        if((seq & 0xF) == 0) {
-            digit_writeTwoHexBytes(i);
-            digit_setBits(2, 0b10000000); // this should be in digit.h not .c but I cbb
-            digit_update();
-        }
+        // if((i & 0xFF) == 0) {
+        //     digit_writeTwoHexBytes(i);
+        //     digit_setBits(2, 0b10000000); // this should be in digit.h not .c but I cbb
+        //     digit_update();
+        // }
     }
     serial_puts("BUFFER DUMP END\r\n");
 }
@@ -61,11 +62,11 @@ void dumpbuffer(uint16_t * buf, uint16_t len) {
 void arc_rithandler(void) {
     buf[seq] = adc_read(ADC_CHANNEL) << 4;
     
-    if((seq & 0xF) == 0) {
-        digit_writeTwoHexBytes(seq);
-        digit_setBits(1, 0b10000000);
-        digit_update();
-    }
+    // if((seq & 0xF) == 0) {
+    //     digit_writeTwoHexBytes(seq);
+    //     digit_setBits(1, 0b10000000);
+    //     digit_update();
+    // }
 
     if(++seq >= BUF_LEN) {
         status_code(2);
