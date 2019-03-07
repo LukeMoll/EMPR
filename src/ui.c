@@ -20,7 +20,7 @@
 
 
 /*disables all the rtc stuff to make testing other functionalities easier*/
-#define RTC_ENABLE false
+#define RTC_ENABLED true
 #define GOT_SD_WORKING true
 
 void SysTick_Handler(void);
@@ -76,7 +76,7 @@ int main(void) {
 
     serial_init();
 
-#if RTC_ENABLE
+#if RTC_ENABLED
     uint8_t buf[5] = {0, 0, 0, 0, 0};
     uint8_t month = 0;
 
