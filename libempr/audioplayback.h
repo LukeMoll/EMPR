@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define PLAYBACK_8KHZ 125
 #define PLAYBACK_4KHZ 250
 #define PLAYBACK_2KHZ 500
 #define PLAYBACK_1KHZ 1000
