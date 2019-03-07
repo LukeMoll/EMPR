@@ -1,12 +1,12 @@
 #ifndef LIBEMPR_SERIAL_H
 #define LIBEMPR_SERIAL_H
 
-int read_usb_serial_blocking(char *buf,int length);
-int read_usb_serial_none_blocking(char *buf,int length);
-
-int write_serial(char *buf, int length);
+#include <stdint.h>
+#include <stdbool.h>
 
 void serial_init(void);
+void serial_send(uint8_t command, uint8_t *buf, uint32_t length);
+uint32_t serial_recv(uint8_t command, uint8_t *buf, uint32_t buflen);
 
 void serial_puts(char *str);
 void serial_printf(const char *format, ...);

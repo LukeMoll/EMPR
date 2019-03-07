@@ -78,18 +78,10 @@ int main(void) {
 
 #if RTC_ENABLED
     uint8_t buf[5] = {0, 0, 0, 0, 0};
-    uint8_t month = 0;
+	serial_send(0x02, NULL, 0);
+	serial_recv(0x02, buf, 5);
 
-    //prompt the user to run the python script
-
-    lcd_buf_write_string_multi("pls run\n./send_dates.py", 23, 0, true);
-    lcd_buf_update();
-
-    month = read_usb_serial_blocking(buf, 5);
-
-    lcd_buf_clear_screen();
-    lcd_buf_update();
-
+	// set RTC
     RTC_Init(LPC_RTC);
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, buf[0]);
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_DAYOFMONTH, buf[1]);
@@ -675,9 +667,3 @@ void SysTick_Handler(void) {
         }
     }
 }
-
-
-
-
-
-
