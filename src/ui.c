@@ -14,6 +14,7 @@
 #include <libempr/serial.h>
 #include <libempr/keypad.h>
 #include <libempr/audioplayback.h>
+#include <libempr/audiorec.h>
 #include <libempr/spi.h>
 #include "ff.h"
 
@@ -482,6 +483,11 @@ void start_recording(char buf[17]) {
     //open a file with the name
     //create a buf
     //read from the audioboard into the buf
+    size_t audiolen = 0x2000;
+    uint16_t audiobuf[audiolen];
+    recording_init(audiobuf, audiolen, PLAYBACK_8KHz);
+    recording_start();
+    recording_deinit();
     //write the buf to the sd card
     while(1){};
     return;
