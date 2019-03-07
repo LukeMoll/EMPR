@@ -503,6 +503,7 @@ void start_recording(char buf[12]) {
     UINT bytes_written;
     if ((res = f_open(&fp, buf, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK)
         serial_printf("saving is broke :( (FRESULT) res = %d\r\n", res);
+        // FIXME: getting error 11 here (FR_INVALID_DRIVE,		/* (11) The logical drive number is invalid */)
     else if ((res = f_write(&fp, audiobuf, audiolen, &bytes_written)) != FR_OK)
         serial_printf("saving is broke 2.0\r\n");
     else if ((res = f_close(&fp)) != FR_OK)
