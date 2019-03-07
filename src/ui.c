@@ -88,6 +88,7 @@ int main(void) {
     month = read_usb_serial_blocking(buf, 5);
 
     lcd_buf_clear_screen();
+    lcd_buf_update();
 
     RTC_Init(LPC_RTC);
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, buf[0]);
@@ -291,6 +292,7 @@ void recording_intro(void) {
     scrolling_active = false;
     lcd_buf_clear_screen();
     lcd_buf_write_string_multi("1: gen name\n2: type name", 25, 0, true);
+    lcd_buf_update();
     char symbol = '7';
     pressed_key = 0;
     while(1) {
@@ -355,7 +357,7 @@ void generate_name(void) {
             keypad_num = pressed_key;
             pressed_key = 0;
             switch(keypad_num) {
-                case 'A':
+                case 'B':
                     ;
                     start_recording(buff);
                     return;
@@ -418,10 +420,12 @@ void type_name(void) {
     scrolling_active = false;
     lcd_buf_clear_screen();
     lcd_buf_write_string_multi("Use the numpad\nPress any key", 28, 0, true);
+    lcd_buf_update();
     pressed_key = 0;
     while(! pressed_key){};
     lcd_buf_clear_screen();
     lcd_buf_write_string("    B:>     D:< ", 16, 16);
+    lcd_buf_update();
     uint8_t index = 0;
     pressed_key = 0;
     char buf[13];
@@ -457,6 +461,7 @@ void type_name(void) {
                     ;
                     buf[index] = chara;
                     lcd_buf_write_string(buf, 13, 0);
+                    lcd_buf_update();
                     index++;
                     break;
             }
@@ -480,6 +485,7 @@ void start_recording(char buf[12]) {
     lcd_buf_write_string(buf, 17, 0);
     lcd_buf_write_string("B:= ", 4, 20);
     lcd_buf_write_string("D:< ", 4, 27);
+    lcd_buf_update();
     //open a file with the name
     //create a buf
     //read from the audioboard into the buf
@@ -494,12 +500,16 @@ void start_recording(char buf[12]) {
     FRESULT res;
     FIL fp;
 
-    if ((res = f_open(&fp, buf, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK)
-        serial_printf("saving is broke :(");
     UINT bytes_written;
-    if ((res = f_write(&fp, audiobuf, audiolen, &bytes_written)) != FR_OK)
-        serial_printf("saving is broke 2.0");
-    if ((res = f_close(&fp)) != FR_OK)
+    if ((res = f_open(&fp, buf, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK)
+        serial_printf("saving is broke :( (FRESULT) res = %d\r\n", res);
+    else if ((res = f_write(&fp, audiobuf, audiolen, &bytes_written)) != FR_OK)
+        serial_printf("saving is broke 2.0\r\n");
+    else if ((res = f_close(&fp)) != FR_OK)
+        serial_printf("saving is broke 3.0\r\n");
+    else 
+        serial_printf("saving worked apparently???\r\n");
+    
     return;
 }
 
@@ -527,6 +537,7 @@ void info(uint8_t files_index) {
     lcd_buf_clear_screen();
     char *current_string;
     lcd_buf_write_string("            D:< ", 16, 16);
+    lcd_buf_update();
     pressed_key = 0;
     while(1) {
         if(pressed_key) {
@@ -542,6 +553,7 @@ void info(uint8_t files_index) {
         }
         current_string = info_list[scrolling_index%3];
         lcd_buf_write_string(current_string, 16, 0);
+        lcd_buf_update();
     }
    return;
 }
@@ -616,6 +628,7 @@ void two_bot() {
     while(1) {
         if(pressed_key=='D') {
             lcd_buf_clear_screen();
+            lcd_buf_update();
             next_func = previous_func;
             return;
         }
