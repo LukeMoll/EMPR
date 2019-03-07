@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <lpc17xx_rtc.h>
 #include <libempr/spi.h>
 #include <libempr/serial.h>
@@ -37,11 +38,31 @@ FRESULT print_file(char *path) {
 	char *buf = malloc((size * sizeof(char)) + 1);
 	if ((res = f_read(&fp, buf, size, &bytes_read)) != FR_OK)
 		return res;
-
 	buf[bytes_read] = '\0';
+
+	if ((res = f_close(&fp)) != FR_OK)
+		return res;
+
 	serial_puts(buf);
 	serial_puts("\r\n");
 	free(buf);
+
+	return FR_OK;
+}
+
+FRESULT write_file(char *path, char *contents) {
+	FRESULT res;
+	FIL fp;
+
+	if ((res = f_open(&fp, path, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK)
+		return res;
+
+	UINT bytes_written;
+	if ((res = f_write(&fp, contents, strlen(contents), &bytes_written) != FR_OK))
+		return res;
+
+	if ((res = f_close(&fp)) != FR_OK)
+		return res;
 
 	return FR_OK;
 }
@@ -70,6 +91,9 @@ void main(void) {
 
 	res = print_file("TRAGEDY.TXT");
 	serial_printf("print_file returned %d\r\n", res);
+
+	res = write_file("TEST.TXT", "Hello, world!");
+	serial_printf("write_file returned %d\r\n", res);
 
 	f_unmount("");
 
