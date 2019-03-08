@@ -462,43 +462,43 @@ void type_name(void) {
 /**
  * Given a file name, records sound until told to stop, then saves that to the file
  * B is pause/stop, D is back (cancel)
- * TODO: when paused, give the option to resume recording, or to save the file.
  * scrolling_active is false
 */
 
 void start_recording(char buf[12]) {
-    //TODO: record sound, save it to SD card, with name
+
     scrolling_active = false;
     lcd_buf_clear_screen();
     lcd_buf_write_string(buf, 17, 0);
     lcd_buf_write_string("B:= ", 4, 20);
     lcd_buf_write_string("D:< ", 4, 27);
     lcd_buf_update();
-    //open a file with the name
-    //create a buf
-    //read from the audioboard into the buf
+    FRESULT res;
+    FIL fp;
+    if ((f_open(&fp, buf, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK)
+        serial_printf("saving is broke :( (FRESULT)\r\n");
     size_t audiolen = 0x2000;
     uint16_t audiobuf[audiolen];
     recording_init(audiobuf, audiolen, PLAYBACK_8KHZ);
-    recording_start();
-    while(!isrecording()) {};
-
-
-    //write the buf to the sd card
-    FRESULT res;
-    FIL fp;
-
+    pressed_key = 0;
     UINT bytes_written;
-    if ((res = f_open(&fp, buf, FA_WRITE | FA_CREATE_ALWAYS)) != FR_OK)
-        serial_printf("saving is broke :( (FRESULT) res = %d\r\n", res);
-        // FIXME: getting error 11 here (FR_INVALID_DRIVE,		/* (11) The logical drive number is invalid */)
-    else if ((res = f_write(&fp, audiobuf, audiolen, &bytes_written)) != FR_OK)
-        serial_printf("saving is broke 2.0\r\n");
-    else if ((res = f_close(&fp)) != FR_OK)
-        serial_printf("saving is broke 3.0\r\n");
-    else 
-        serial_printf("saving worked apparently???\r\n");
-    
+    while(1) {
+        recording_start();
+        while(!isrecording()) {};
+
+
+        //write the buf to the sd card
+
+        if ((res = f_write(&fp, audiobuf, audiolen, &bytes_written)) != FR_OK)
+            serial_printf("saving is broke 2.0\r\n");
+        f_sync(&fp);
+
+        if(pressed_key = 'D') {
+            f_close(&fp);
+            break;
+        }
+    }
+        
     return;
 }
 
@@ -509,7 +509,7 @@ void start_recording(char buf[12]) {
 */
 
 void info(uint8_t files_index) {
-    //TODO: test, once SD is working
+
     scrolling_active = true;
     scrolling_index = 0;
 #if GOT_SD_WORKING
