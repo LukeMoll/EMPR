@@ -50,5 +50,11 @@ void apb_rithandler(void) {
         apb_head = NULL;
         apb_end = NULL;
     }
-
+#if CW_DEMO
+    new_val = (*apb_head) << scale;
+    if(previous_val - new_val >= CW_DEMO_DELTA) {
+        serial_puts(*new_val);
+        previous_val = new_val;
+    }
+#endif
 }
