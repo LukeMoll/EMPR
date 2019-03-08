@@ -18,6 +18,7 @@
 #include <libempr/spi.h>
 #include "ff.h"
 
+#define LM_INDIVIDUAL_ENABLE false
 
 /*disables all the rtc stuff to make testing other functionalities easier*/
 #define RTC_ENABLED false
@@ -35,6 +36,10 @@ void info(uint8_t files_index);
 void playback(uint8_t index);
 void two_bot();
 
+#if LM_INDIVIDUAL_ENABLE
+#include <libempr/lcd_charmap.h>
+void recording_select_rate();
+#endif
 
 /**
  * keypad values: modified in SysTickHandler(void) (If they need to be modified). Can be accessed by any function 
@@ -276,7 +281,12 @@ void browser(void) {
 void recording_intro(void) {
     scrolling_active = false;
     lcd_buf_clear_screen();
+    #if LM_INDIVIDUAL_ENABLE
+    lcd_buf_write_string("1: auto  2: type", 16, 0);
+    lcd_buf_write_string("3: sample rate", 14, 16);
+    #else
     lcd_buf_write_string_multi("1: gen name\n2: type name", 25, 0, true);
+    #endif
     lcd_buf_update();
     char symbol = '7';
     pressed_key = 0;
@@ -293,7 +303,12 @@ void recording_intro(void) {
                     ;
                     next_func = &type_name;
                     break;
-
+                #if LM_INDIVIDUAL_ENABLE
+                case '3' :
+                    ;
+                    next_func = &recording_select_rate;
+                    break;
+                #endif
                 case 'B':
                     ;
                     break;
@@ -618,6 +633,35 @@ void two_bot() {
         }
     }
 }
+
+#if LM_INDIVIDUAL_ENABLE
+void recording_select_rate() {
+    lcd_buf_clear_screen();
+    //d_buf_write_string("|              |")
+    lcd_buf_write_string("Input rate (KHz)", 16, 0);
+    lcd_buf_write_string("[ 2 4 8 ]    D:<", 16, 16);
+    lcd_buf_write_byte(CHR_ARROW_LEFT, 31);
+    lcd_buf_update();
+
+    char symbol;
+    pressed_key = 0;
+    while(1) {
+        if(pressed_key) {
+            symbol = pressed_key;
+            pressed_key = 0;
+            switch(symbol) {
+                case 'D':
+                    ;
+                    next_func = &recording_intro;
+                    break;
+                default:
+                    break;
+            }
+            return;
+        }
+    }
+}
+#endif
 
 /**
  * Systick interupt handler
