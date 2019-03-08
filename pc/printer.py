@@ -3,13 +3,14 @@
 import sys
 from datetime import datetime
 
-import comms
+import serialserver
 
 try:
-    with comms.Client(0x01) as serial:
+    with serialserver.Client(0x01) as serial:
+        print('Connected to', serialserver.SOCKET_PATH)
         while True:
             time = datetime.now().strftime('%F %T')
             msg = serial.read().decode('ascii')
             print('[{}] {}'.format(time, msg), end='', flush=True)
-except comms.SerialError as e:
+except serialserver.SerialError as e:
     print(e)

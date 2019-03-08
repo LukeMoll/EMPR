@@ -3,11 +3,11 @@
 import sys
 from datetime import datetime
 
-import comms
+import serialserver
 
 try:
-    with comms.Client(0x02) as serial:
-        print("Serial open")
+    with serialserver.Client(0x02) as serial:
+        print('Connected to', serialserver.SOCKET_PATH)
         while True:
             serial.read()
             print("Request received")
@@ -23,5 +23,5 @@ try:
             packet = bytes([month, day, hour, minute, second])
             serial.write(packet)
             print("Datetime sent")
-except comms.SerialError as e:
+except serialserver.SerialError as e:
     print(e)
