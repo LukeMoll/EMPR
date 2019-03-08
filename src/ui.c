@@ -18,11 +18,17 @@
 #include <libempr/spi.h>
 #include "ff.h"
 
-#define LM_INDIVIDUAL_ENABLE false
+#define LM_INDIVIDUAL_ENABLE true
 
 /*disables all the rtc stuff to make testing other functionalities easier*/
 #define RTC_ENABLED false
-#define GOT_SD_WORKING true
+#define GOT_SD_WORKING false
+
+#if LM_INDIVIDUAL_ENABLE
+#include <libempr/lcd_charmap.h>
+void recording_select_rate();
+uint8_t recordingrate_us = PLAYBACK_2KHZ;
+#endif
 
 void SysTick_Handler(void);
 void intro_screen();
@@ -36,10 +42,6 @@ void info(uint8_t files_index);
 void playback(uint8_t index);
 void two_bot();
 
-#if LM_INDIVIDUAL_ENABLE
-#include <libempr/lcd_charmap.h>
-void recording_select_rate();
-#endif
 
 /**
  * keypad values: modified in SysTickHandler(void) (If they need to be modified). Can be accessed by any function 
@@ -252,7 +254,8 @@ void browser(void) {
                     break;
                 case 'B': //playback
                     ;
-                    playback(scrolling_index%no_of_files);
+                    uint8_t idx = scrolling_index%no_of_files;
+                    // playback(idx); //FIXME: why does this break for no reason
                     break;
                 case 'D': //goes back to the previous function
                     ;
@@ -494,7 +497,11 @@ void start_recording(char buf[12]) {
     //read from the audioboard into the buf
     size_t audiolen = 0x2000;
     uint16_t audiobuf[audiolen];
-    recording_init(audiobuf, audiolen, PLAYBACK_8KHZ);
+    #if LM_INDIVIDUAL_ENABLE
+        recording_init(audiobuf, audiolen, recordingrate_us);
+    #else
+        recording_init(audiobuf, audiolen, PLAYBACK_8KHZ);
+    #endif
     recording_start();
     while(!isrecording()) {};
 
@@ -581,7 +588,11 @@ void playback(uint8_t index) {
     FIL current_file;
     f_open(&current_file, name, FA_READ); //not actually title, it needs to have the .wav extension
     bool paused = false;
+    #if LM_INDIVIDUAL_ENABLE
+    playback_init(bufout, 0x7000, recordingrate_us);
+    #else
     playback_init(bufout, 0x7000, PLAYBACK_4KHZ);
+    #endif
     playback_play();
     char keypad_num;
     while(hasread < toread) {
@@ -652,6 +663,26 @@ void recording_select_rate() {
             switch(symbol) {
                 case 'D':
                     ;
+                    next_func = &recording_intro;
+                    break;
+                case '2':
+                    ;
+                    recordingrate_us = PLAYBACK_2KHZ;
+                    next_func = &recording_intro;
+                    break;
+                case '4':
+                    ;
+                    recordingrate_us = PLAYBACK_4KHZ;
+                    next_func = &recording_intro;
+                    break;
+                case '8':
+                    ;
+                    recordingrate_us = PLAYBACK_8KHZ;
+                    next_func = &recording_intro;
+                    break;
+                case '0': // 10KHz
+                    ;
+                    recordingrate_us = 100;
                     next_func = &recording_intro;
                     break;
                 default:
