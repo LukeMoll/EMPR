@@ -2,8 +2,8 @@
 #include <string.h>
 #include <lpc17xx_rtc.h>
 #include <libempr/spi.h>
-#include <libempr/serial.h>
 #include "ff.h"
+#include <libempr/status.h>
 
 FRESULT list_files(char *path) {
 	FRESULT res;
@@ -67,6 +67,39 @@ FRESULT write_file(char *path, char *contents) {
 	return FR_OK;
 }
 
+void browser() {
+
+    FRESULT res;
+    DIR dp;
+
+    if ((res = f_opendir(&dp, "")) != FR_OK)
+        serial_printf("SD card failed :(");
+    FILINFO fno;
+	FILINFO files[255];
+    uint8_t no_of_files = 0;
+    while ((res = f_readdir(&dp, &fno)) == FR_OK) {
+        if (fno.fname[0] == 0)
+            break;
+
+        if (fno.fattrib & (AM_DIR | AM_HID | AM_SYS))
+            continue;
+
+        memcpy(&files[no_of_files], &fno, sizeof(FILINFO));
+        no_of_files++;
+    }
+    f_closedir(&dp);
+    char list_of_text[no_of_files][12];
+    for(size_t i = 0; i < no_of_files; i++) {
+        //snprintf(list_of_text[i], 16, "aaaaaaaaaaaaaaaa");
+        strncpy(list_of_text[i], files[i].fname, 12);
+    }
+
+	serial_printf("file no 2: %s\r\n", list_of_text[2]);
+	status_code(2);
+	serial_printf("file no 2(size): %s\r\n", files[5].fname);
+
+}
+
 void main(void) {
 	RTC_Init(LPC_RTC);
 
@@ -95,7 +128,11 @@ void main(void) {
 	res = write_file("TEST.TXT", "Hello, world!");
 	serial_printf("write_file returned %d\r\n", res);
 
+	browser();
+
 	f_unmount("");
 
 	while (1);
 }
+
+
