@@ -8,8 +8,6 @@
 #define PLAYBACK_4KHZ 250
 #define PLAYBACK_2KHZ 500
 #define PLAYBACK_1KHZ 1000
-#define CW_DEMO_DELTA 0x10
-#define CW_DEMO false
 
 void playback_init(uint16_t *buf, size_t len, uint32_t sample_period);
 void playback_play();

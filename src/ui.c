@@ -20,7 +20,7 @@
 
 
 /*disables all the rtc stuff to make testing other functionalities easier*/
-#define RTC_ENABLED true
+#define RTC_ENABLED false
 #define GOT_SD_WORKING true
 
 void SysTick_Handler(void);
@@ -55,7 +55,7 @@ void (*previous_func)(void);
  * when the key '8' is pressed, the pointer value is decremented by 16
 */
 bool scrolling_active = false;
-int8_t scrolling_index = 0;
+int8_t scrolling_index = false;
 
 uint8_t twotal = 0;
 
@@ -77,10 +77,11 @@ int main(void) {
     serial_init();
 
 #if RTC_ENABLED
+    lcd_buf_write_string("pls send dates", 14, 1);
+    lcd_buf_update();
     uint8_t buf[5] = {0, 0, 0, 0, 0};
 	serial_send(0x02, NULL, 0);
 	serial_recv(0x02, buf, 5);
-
 	// set RTC
     RTC_Init(LPC_RTC);
     RTC_SetTime(LPC_RTC, RTC_TIMETYPE_MONTH, buf[0]);
@@ -95,7 +96,7 @@ int main(void) {
     SYSTICK_IntCmd(ENABLE);
     SYSTICK_Cmd(ENABLE);
 
-
+#if GOT_SD_WORKING
     spi_init();
     FRESULT res;
 
@@ -105,6 +106,7 @@ int main(void) {
   
     if(res != FR_OK)
         serial_printf("sd card mount failed\r\n");
+#endif
 
     intro_screen();
 
@@ -211,15 +213,12 @@ void browser(void) {
         no_of_files++;
     }
     f_closedir(&dp);
-    char list_of_text[no_of_files][12];
+    char list_of_text[no_of_files][16];
     for(size_t i = 0; i < no_of_files; i++) {
-        //snprintf(list_of_text[i], 16, "aaaaaaaaaaaaaaaa");
-        strncpy(list_of_text[i], files[i].fname, 12);
+        sprintf(list_of_text[i], "%-16s", files[i].fname);
+        //strncpy(list_of_text[i], files[i].fname, 12);
     }
 
-    //TODO:
-    //get a list of titles (can't figure out how to do it using fatfs, might be worth keeping them as a volatile variable? idk)
-    //list_of_text = list_of_titles
 #else
     char list_of_text[3][16] = {"aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb", "cccccccccccccccc"};
     uint8_t no_of_files = 3;
@@ -228,12 +227,8 @@ void browser(void) {
     //have a pointer to the array that is a list of names
     scrolling_index = 0;
     lcd_buf_clear_screen();
-    lcd_buf_write_string(list_of_text[scrolling_index], 12, 0); 
+    lcd_buf_write_string(list_of_text[scrolling_index], 16, 0); 
     lcd_buf_write_string("A:$ B:>      D:< ", 16, 16);
-    // lcd_buf_write_string("D:< ", 4, 27);
-    lcd_buf_update();
-    //add the info string
-    status_code(2);
     char *current_name;
     char keypad_num;
 
@@ -252,9 +247,7 @@ void browser(void) {
                     break;
                 case 'B': //playback
                     ;
-                    // playback(current_name);
-                    //open the file into a buffer
-                    //send that file to the audioboard
+                    playback(scrolling_index%no_of_files);
                     break;
                 case 'D': //goes back to the previous function
                     ;
@@ -412,17 +405,17 @@ void type_name(void) {
     scrolling_active = false;
     lcd_buf_clear_screen();
     lcd_buf_write_string_multi("Use the numpad\nPress any key", 28, 0, true);
-    lcd_buf_update();
     pressed_key = 0;
     while(! pressed_key){};
     lcd_buf_clear_screen();
     lcd_buf_write_string("    B:>     D:< ", 16, 16);
     lcd_buf_update();
-    uint8_t index = 0;
+    // uint8_t index = 0;
     pressed_key = 0;
     char buf[13];
     sprintf(buf, "                ");
-    while(index < 12) {
+    uint8_t i = 0;
+    while(i < 12) {
         if(pressed_key) {
             char chara = pressed_key;
             pressed_key = 0;
@@ -430,6 +423,7 @@ void type_name(void) {
                 case 'B':
                     ;
                     start_recording(buf); //calls it rather than function pointer, because it needs an argument, and then it can do it's thing and return
+                    next_func = &choose_mode;
                     return;
                     break;
                 case 'D':
@@ -451,15 +445,17 @@ void type_name(void) {
                     break;
                 default:
                     ;
-                    buf[index] = chara;
+                    buf[i] = chara;
                     lcd_buf_write_string(buf, 13, 0);
                     lcd_buf_update();
-                    index++;
+                    i++;
                     break;
             }
         }
     }
     start_recording(buf);
+
+    next_func = &choose_mode;
     return;
 }
 
@@ -520,7 +516,7 @@ void info(uint8_t files_index) {
     
     FILINFO file_info = files[files_index];
     char info_list [4][16];
-    sprintf(info_list[0], "%s", file_info.fname);
+    sprintf(info_list[0], "%s    ", file_info.fname);
     sprintf(info_list[1], "size :  %08u", file_info.fsize);
     sprintf(info_list[2], "date :  %08u", file_info.fdate);
     sprintf(info_list[3], "time :  %08u", file_info.ftime);
@@ -556,23 +552,26 @@ void info(uint8_t files_index) {
  * D is back
  * scrolling_active is false
 */
-#if 0
+#if GOT_SD_WORKING
 void playback(uint8_t index) {
     //TODO: test once SD is working
-
+    lcd_buf_clear_screen();
+    lcd_buf_write_string("playing back",12,0);
     scrolling_active = false;
     uint32_t len = 0x7000;
     uint8_t bufout[len]; //buffer we read/play into
     uint32_t toread = files[index].fsize;    //size of the file
     uint32_t hasread = 0;   //use this to display time left later
     TCHAR name = files[index].fname;
-    FIL *current_file;
-    fopen(*current_file, &name, FA_READ); //not actually title, it needs to have the .wav extension
-   
+    FIL current_file;
+    f_open(&current_file, name, FA_READ); //not actually title, it needs to have the .wav extension
+    bool paused = false;
+    playback_init(bufout, 0x7000, PLAYBACK_4KHZ);
+    playback_play();
+    char keypad_num;
     while(hasread < toread) {
         if(!paused){
-            fread(*current_file, bufout, len, &hasread);
-            has_read += 16;
+            f_read(&current_file, bufout, len, &hasread);
         }
         if(pressed_key) {
             keypad_num = pressed_key;
@@ -588,24 +587,16 @@ void playback(uint8_t index) {
                         break;
                     }
                 case 'D':
-                fclose(*current_file);
-                    return
+                    playback_pause();
+                    f_close(&current_file);
+                    return;
             }
         }
-#if CW_DEMO
-        pause = read_usb_serial_none_blocking();
-        if(pause & !paused) {
-            paused = true;
-            playback_pause();
-        } else if(pause & paused) {
-            paused = false;
-            playback_play();
-        }
-#endif
      //figure out timing stuff
 
     }
-    fclose(*current_file);
+    playback_pause();
+    f_close(&current_file);
     return;
 
 }
