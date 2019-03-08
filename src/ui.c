@@ -20,7 +20,7 @@
 
 
 /*disables all the rtc stuff to make testing other functionalities easier*/
-#define RTC_ENABLED false
+#define RTC_ENABLED true
 #define GOT_SD_WORKING true
 
 void SysTick_Handler(void);
@@ -332,7 +332,7 @@ void generate_name(void) {
     uint32_t hour = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_HOUR);
     uint32_t minute = RTC_GetTime(LPC_RTC, RTC_TIMETYPE_MINUTE);
     char buff[17];
-    snprintf(buff, 12, "%02u/%02u-%02u: %02u", month, day, hour, minute); //Can change this later, for now just wanted to get RTC working
+    snprintf(buff, 12, "%02u/%02u-%02u:%02u", month, day, hour, minute); //Can change this later, for now just wanted to get RTC working
     lcd_buf_write_string(buff, 12, 0);
     lcd_buf_update();
     lcd_buf_write_string("    B:>     D:< ", 16, 16);
