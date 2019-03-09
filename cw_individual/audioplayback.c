@@ -52,7 +52,7 @@ void apb_rithandler(void) {
     }
     new_val = (*apb_head) << scale;
     if(previous_val - new_val >= CW_DEMO_DELTA) {
-        //send COMMAND+new_val
+        serial_send(PLAYBACK_COMMAND, &new_val, 2);
         previous_val = new_val;
     }
 

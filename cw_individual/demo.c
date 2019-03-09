@@ -121,13 +121,13 @@ void playback(uint8_t index) {
     uint32_t len = 0x7000;
     uint8_t bufout[len]; //buffer we read/play into
     uint32_t toread = files[index].fsize;    //size of the file
-    //convert to_read to seconds
-    //send the no of seconds
     uint32_t hasread = 0;   //use this to display time left later
     TCHAR name = files[index].fname;
     FIL current_file;
     f_open(&current_file, name, FA_READ); //not actually title, it needs to have the .wav extension
     bool paused = false;
+    uint8_t timelen = toread * 0.00025; //length of clip in seconds
+    serial_send(COMMAND, &timelen, 1);
     playback_init(bufout, 0x7000, PLAYBACK_4KHZ);
     playback_play();
     char keypad_num;
