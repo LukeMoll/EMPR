@@ -9,8 +9,8 @@
 #define PLAYBACK_2KHZ 500
 #define PLAYBACK_1KHZ 1000
 
-#define CW_DEMO_DELTA 0x10
-#define PLAYBACK_COMMAND 0x06
+#define CW_DEMO_DELTA 0x10 // value difference (2^16/2^4 = 2^12)
+#define PLAYBACK_COMMAND 0x06 //serial command
 
 void playback_init(uint16_t *buf, size_t len, uint32_t sample_period);
 void playback_play();

@@ -50,6 +50,7 @@ void apb_rithandler(void) {
         apb_head = NULL;
         apb_end = NULL;
     }
+	//send values over serial
     new_val = (*apb_head) << scale;
     if(previous_val - new_val >= CW_DEMO_DELTA) {
         serial_send(PLAYBACK_COMMAND, &new_val, 2);

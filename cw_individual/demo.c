@@ -7,7 +7,7 @@
 #include <libempr/lcd_keymap.h>
 #include <libempr/keypad.h>
 
-#define COMMAND 0x05
+#define COMMAND 0x05 //serial command
 
 void Systick_Handler(void);
 void intro_screen();
@@ -114,7 +114,6 @@ void browser(void) {
 }
 
 void playback(uint8_t index) {
-    //TODO: test once SD is working
     lcd_buf_clear_screen();
     lcd_buf_write_string("playing back",12,0);
     scrolling_active = false;
@@ -127,7 +126,7 @@ void playback(uint8_t index) {
     f_open(&current_file, name, FA_READ); //not actually title, it needs to have the .wav extension
     bool paused = false;
     uint8_t timelen = toread * 0.00025; //length of clip in seconds
-    serial_send(COMMAND, &timelen, 1);
+    serial_send(COMMAND, &timelen, 1); //send length over serial
     playback_init(bufout, 0x7000, PLAYBACK_4KHZ);
     playback_play();
     char keypad_num;
